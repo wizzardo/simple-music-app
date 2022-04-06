@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 10
+      pool-name: Primary
+      leak-detection-threshold: 300000
+      connection-timeout: 5000
+      validation-timeout: 2000
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: Pass2020!
+  transaction.default-timeout: 600s
+
+# Logging
+logging.level:
+  com.zaxxer.hikari.HikariConfig: DEBUG
