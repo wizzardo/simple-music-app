@@ -131,8 +131,6 @@ class DB {
     }
 
     open() {
-        let upgraded = false
-        let upgrading = false
         return new Promise((resolve, reject) => {
             const migrations = this.migrations;
             migrations.sort(Comparators.of((it => it.version()), Comparators.SORT_ASC, migrations))
@@ -146,26 +144,19 @@ class DB {
             openDBRequest.onsuccess = event => {
                 console.log('onsuccess', event)
                 this.db = event.target['result'] as IDBDatabase;
-                if (!upgraded && !upgrading) {
-                    resolve(this.db)
-                }
+                resolve(this.db)
             };
             openDBRequest.onupgradeneeded = async event => {
                 console.log('onupgradeneeded', event)
                 const db: IDBDatabase = event.target['result'];
                 this.db = db
-                upgrading = true
                 const filtered = migrations.filter(it => it.version() > event.oldVersion);
-                const tr = event.target['transaction']
+                const tr = event.target['transaction'] as PromisedTransaction
                 for (let i = 0; i < filtered.length; i++) {
                     const it = filtered[i];
                     console.log('executing migration', it.version(), it.name())
                     await it.execute(tr, db, this);
                 }
-                await tr
-                upgrading = false
-                resolve(this.db)
-                upgraded = true
             };
         })
     }
