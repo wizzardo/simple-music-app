@@ -3,22 +3,27 @@ import './App.css'
 import {classNames} from "react-ui-basics/Tools";
 import Button from "react-ui-basics/Button";
 import ProgressBar from "./ProgressBar";
-import DB from "./DB";
+import {SongLocalCacheDB, SONGS_STORE_NAME, useLocalCache, useLocalSongCacheRW} from "../services/LocalCacheService";
 
-const audioUrl = "https://cdn.pixabay.com/download/audio/2022/03/23/audio_07b2a04be3.mp3?filename=order-99518.mp3"
-const audioUrl2 = "https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1bdd.mp3?filename=the-cradle-of-your-soul-15700.mp3"
+const audioUrl = "https://cdn.pixabay.com/download/audio/2022/03/23/audio_07b2a04be3.mp3?filename=order-99518.mp3";
+const audioUrl2 = "https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1bdd.mp3?filename=the-cradle-of-your-soul-15700.mp3";
 
-const db = new DB();
-
-const load = (url, context, setAudio) => {
+const load = (url, context, setAudio, localCache: SongLocalCacheDB) => {
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
 
     request.onload = () => {
         let audioData = request.response;
-        console.log(audioData)
+        const data = audioData.slice();
         context.decodeAudioData(audioData, buffer => {
+            localCache.add({
+                url,
+                album: 'test',
+                artist: 'test',
+                size: data.byteLength,
+                data,
+            })
             setAudio(buffer)
         }, e => console.error(e));
     }
@@ -35,18 +40,29 @@ const playSound = (context, buffer, offset) => {
 
 export default () => {
     const [context, setContext] = useState()
+    const localCache = useLocalCache();
+
     useEffect(() => {
-        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        window.AudioContext = window.AudioContext || window['webkitAudioContext'];
         setContext(new AudioContext())
     }, [])
 
 
     const [audio, setAudio] = useState()
-    useEffect(() => {
-        if (context) {
-            load(audioUrl, context, setAudio)
+    useEffect(async () => {
+        if (!context)
+            return
+        if (!localCache)
+            return
+
+        const song = await localCache.songByUrl(audioUrl);
+        console.log('songByUrl', song)
+        if (!song) {
+            load(audioUrl, context, setAudio, localCache)
+        } else {
+            context.decodeAudioData(song.data, setAudio, e => console.error(e))
         }
-    }, [context])
+    }, [context, localCache])
 
     const [playing, setPlaying] = useState(false)
     const [source, setSource] = useState(false)

@@ -15,6 +15,16 @@ IDBRequest.prototype['then'] = function <T>(resolve: (T) => void, reject) {
     this.onsuccess = e => resolve(this.result)
     this.onerror = reject
 };
+IDBTransaction.prototype['asPromise'] = function <T>() {
+    return new Promise<T>((resolve, reject) => {
+        this.onsuccess = e => resolve(this)
+        this.onerror = reject
+    });
+};
+IDBTransaction.prototype['then'] = function <T>(resolve: (T) => void, reject) {
+    this.onsuccess = e => resolve(this)
+    this.onerror = reject
+};
 
 
 interface PromisedRequest<T> extends IDBRequest<T> {
@@ -82,10 +92,31 @@ interface TypedIndex<T, K extends IDBValidKey, M extends IDBValidKey> extends ID
     openKeyCursor(query?: Query<K> | null, direction?: IDBCursorDirection): PromisedRequest<IDBCursor | null>;
 }
 
+interface PromisedTransaction extends IDBTransaction {
+    onabort: ((this: PromisedTransaction, ev: Event) => any) | null;
+    oncomplete: ((this: PromisedTransaction, ev: Event) => any) | null;
+    onerror: ((this: PromisedTransaction, ev: Event) => any) | null;
+
+    objectStore<T, K extends IDBValidKey>(name: string): TypedObjectStore<T, K>;
+
+    addEventListener<K extends keyof IDBTransactionEventMap>(type: K, listener: (this: PromisedTransaction, ev: IDBTransactionEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+
+    removeEventListener<K extends keyof IDBTransactionEventMap>(type: K, listener: (this: PromisedTransaction, ev: IDBTransactionEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+
+    asPromise(): Promise<PromisedTransaction>,
+}
+
+
 interface Migration {
-    execute(db: IDBDatabase): Promise<any>,
+    execute(tr: PromisedTransaction, db: IDBDatabase, wrapper: DB): Promise<any> | void,
 
     version(): number;
+
+    name(): string;
 }
 
 class DB {
@@ -103,11 +134,11 @@ class DB {
         let upgraded = false
         let upgrading = false
         return new Promise((resolve, reject) => {
-            let migrations = this.migrations;
+            const migrations = this.migrations;
             migrations.sort(Comparators.of((it => it.version()), Comparators.SORT_ASC, migrations))
-            let version = migrations[migrations.length - 1]?.version() || 0
+            const version = migrations[migrations.length - 1]?.version() || 0
 
-            let openDBRequest = window.indexedDB.open(this.name, version);
+            const openDBRequest = window.indexedDB.open(this.name, version);
             openDBRequest.onerror = event => {
                 console.error(event)
                 reject(event)
@@ -121,15 +152,17 @@ class DB {
             };
             openDBRequest.onupgradeneeded = async event => {
                 console.log('onupgradeneeded', event)
-                let db: IDBDatabase = event.target['result'];
+                const db: IDBDatabase = event.target['result'];
+                this.db = db
                 upgrading = true
-                let filtered = migrations.filter(it => it.version() > db.version);
+                const filtered = migrations.filter(it => it.version() > event.oldVersion);
+                const tr = event.target['transaction']
                 for (let i = 0; i < filtered.length; i++) {
                     const it = filtered[i];
-                    await it.execute(db);
+                    console.log('executing migration', it.version(), it.name())
+                    await it.execute(tr, db, this);
                 }
                 upgrading = false
-                this.db = db
                 resolve(this.db)
                 upgraded = true
             };
@@ -155,7 +188,7 @@ class DB {
         tr.onerror = event => {
             console.error(event)
         };
-        return tr
+        return tr as PromisedTransaction
     }
 }
 
