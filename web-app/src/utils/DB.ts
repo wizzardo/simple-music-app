@@ -162,6 +162,7 @@ class DB {
                     console.log('executing migration', it.version(), it.name())
                     await it.execute(tr, db, this);
                 }
+                await tr
                 upgrading = false
                 resolve(this.db)
                 upgraded = true

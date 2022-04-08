@@ -1,30 +1,45 @@
 import DB from "../utils/DB";
 import Store, {useStore} from "react-ui-basics/store/Store";
 
-export const SONGS_STORE_NAME = "songs";
+const SONGS_STORE_NAME = "songs";
+const SONG_DATA_STORE_NAME = "song_data";
 
 interface Song {
     url: string
     artist: string,
     album: string,
     size: number,
+    dataId: number,
+}
+
+interface SongData {
     data: ArrayBuffer,
 }
 
 export class SongLocalCacheDB extends DB {
     async songByUrl(url: string) {
-        return await (this.trRO(SONGS_STORE_NAME)
-                .objectStore<Song, number>(SONGS_STORE_NAME)
-                .index<string>('url')
-                .get(url)
-                .asPromise()
-        )
+        return this.trRO(SONGS_STORE_NAME)
+            .objectStore<Song, number>(SONGS_STORE_NAME)
+            .index<string>('url')
+            .get(url)
+            .asPromise()
     }
 
-    async add(song: Song) {
-        return await (this.trRW(SONGS_STORE_NAME)
-            .objectStore<Song, number>(SONGS_STORE_NAME)
-            .add(song))
+    async songData(id: number) {
+        return this.trRO(SONG_DATA_STORE_NAME)
+            .objectStore<SongData, number>(SONG_DATA_STORE_NAME)
+            .get(id)
+            .asPromise()
+    }
+
+    async add(song: Song, data: ArrayBuffer) {
+        const tr = this.trRW(SONGS_STORE_NAME, SONG_DATA_STORE_NAME);
+        song.dataId = await tr.objectStore<SongData, number>(SONG_DATA_STORE_NAME)
+            .add({data})
+            .asPromise();
+        return tr.objectStore<Song, number>(SONGS_STORE_NAME)
+            .add(song)
+            .asPromise()
     }
 }
 
@@ -45,7 +60,13 @@ const db = new SongLocalCacheDB("localCache", [
             store.createIndex("artist", "artist", {unique: false});
             store.createIndex("album", "album", {unique: false});
             store.createIndex("size", "size", {unique: false});
-            await tr
+        }
+    },
+    {
+        version: () => 3,
+        name: () => 'adding song_data',
+        execute: async (tr, db, wrapper) => {
+            db.createObjectStore(SONG_DATA_STORE_NAME, {autoIncrement: true});
         }
     },
 ]) as SongLocalCacheDB
@@ -65,12 +86,4 @@ const store = new Store<DBStore>({ready: false});
 export const useLocalCache = () => {
     const isReady = useStore(store).ready;
     return isReady ? db : null;
-}
-
-export const useLocalSongCacheRW = () => {
-    const isReady = useStore(store).ready;
-    if (!isReady)
-        return null;
-
-    return db.trRW(SONGS_STORE_NAME).objectStore<Song, number>(SONGS_STORE_NAME)
 }
