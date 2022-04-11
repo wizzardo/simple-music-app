@@ -1,4 +1,4 @@
-package com.example.be
+package com.example.be.service
 
 import org.flywaydb.core.Flyway
 import org.springframework.boot.context.event.ApplicationReadyEvent

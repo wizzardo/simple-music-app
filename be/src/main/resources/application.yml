@@ -16,3 +16,6 @@ spring:
 # Logging
 logging.level:
   com.zaxxer.hikari.HikariConfig: DEBUG
+
+storage:
+  path: /tmp
