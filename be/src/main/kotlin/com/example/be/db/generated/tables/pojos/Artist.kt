@@ -5,7 +5,7 @@ package com.example.be.db.generated.tables.pojos
 
 
 import org.jooq.JSONB
-import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.annotation.processing.Generated
 
 
@@ -22,8 +22,8 @@ import javax.annotation.processing.Generated
 @Suppress("UNCHECKED_CAST")
 data class Artist(
     var id: Long? = null,
-    var created: LocalDate? = null,
-    var updated: LocalDate? = null,
+    var created: LocalDateTime? = null,
+    var updated: LocalDateTime? = null,
     var name: String? = null,
     var albums: JSONB? = null
 ) {

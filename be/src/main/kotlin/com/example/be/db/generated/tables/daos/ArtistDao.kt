@@ -9,7 +9,7 @@ import com.example.be.db.generated.tables.records.ArtistRecord
 import org.jooq.Configuration
 import org.jooq.JSONB
 import org.jooq.impl.DAOImpl
-import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.annotation.processing.Generated
 
 
@@ -53,23 +53,23 @@ open class ArtistDao(configuration: Configuration?) : DAOImpl<ArtistRecord, com.
      * Fetch records that have <code>created BETWEEN lowerInclusive AND
      * upperInclusive</code>
      */
-    fun fetchRangeOfCreated(lowerInclusive: LocalDate?, upperInclusive: LocalDate?): List<com.example.be.db.generated.tables.pojos.Artist> = fetchRange(Artist.ARTIST.CREATED, lowerInclusive, upperInclusive)
+    fun fetchRangeOfCreated(lowerInclusive: LocalDateTime?, upperInclusive: LocalDateTime?): List<com.example.be.db.generated.tables.pojos.Artist> = fetchRange(Artist.ARTIST.CREATED, lowerInclusive, upperInclusive)
 
     /**
      * Fetch records that have <code>created IN (values)</code>
      */
-    fun fetchByCreated(vararg values: LocalDate): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.CREATED, *values)
+    fun fetchByCreated(vararg values: LocalDateTime): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.CREATED, *values)
 
     /**
      * Fetch records that have <code>updated BETWEEN lowerInclusive AND
      * upperInclusive</code>
      */
-    fun fetchRangeOfUpdated(lowerInclusive: LocalDate?, upperInclusive: LocalDate?): List<com.example.be.db.generated.tables.pojos.Artist> = fetchRange(Artist.ARTIST.UPDATED, lowerInclusive, upperInclusive)
+    fun fetchRangeOfUpdated(lowerInclusive: LocalDateTime?, upperInclusive: LocalDateTime?): List<com.example.be.db.generated.tables.pojos.Artist> = fetchRange(Artist.ARTIST.UPDATED, lowerInclusive, upperInclusive)
 
     /**
      * Fetch records that have <code>updated IN (values)</code>
      */
-    fun fetchByUpdated(vararg values: LocalDate): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.UPDATED, *values)
+    fun fetchByUpdated(vararg values: LocalDateTime): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.UPDATED, *values)
 
     /**
      * Fetch records that have <code>name BETWEEN lowerInclusive AND

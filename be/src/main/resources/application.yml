@@ -12,6 +12,14 @@ spring:
     username: postgres
     password: Pass2020!
   transaction.default-timeout: 600s
+  http:
+    multipart:
+      max-file-size: 128MB
+      max-request-size: 128MB
+  servlet:
+    multipart:
+      max-file-size: 128MB
+      max-request-size: 128MB
 
 # Logging
 logging.level:

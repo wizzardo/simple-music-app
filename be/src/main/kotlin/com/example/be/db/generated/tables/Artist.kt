@@ -12,7 +12,7 @@ import org.jooq.impl.DSL
 import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
-import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.annotation.processing.Generated
 
 
@@ -64,12 +64,12 @@ open class Artist(
     /**
      * The column <code>public.artist.created</code>.
      */
-    val CREATED: TableField<ArtistRecord, LocalDate?> = createField(DSL.name("created"), SQLDataType.LOCALDATE, this, "")
+    val CREATED: TableField<ArtistRecord, LocalDateTime?> = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6), this, "")
 
     /**
      * The column <code>public.artist.updated</code>.
      */
-    val UPDATED: TableField<ArtistRecord, LocalDate?> = createField(DSL.name("updated"), SQLDataType.LOCALDATE, this, "")
+    val UPDATED: TableField<ArtistRecord, LocalDateTime?> = createField(DSL.name("updated"), SQLDataType.LOCALDATETIME(6), this, "")
 
     /**
      * The column <code>public.artist.name</code>.
@@ -119,5 +119,5 @@ open class Artist(
     // -------------------------------------------------------------------------
     // Row5 type methods
     // -------------------------------------------------------------------------
-    override fun fieldsRow(): Row5<Long?, LocalDate?, LocalDate?, String?, JSONB?> = super.fieldsRow() as Row5<Long?, LocalDate?, LocalDate?, String?, JSONB?>
+    override fun fieldsRow(): Row5<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?> = super.fieldsRow() as Row5<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?>
 }
