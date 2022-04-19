@@ -10,7 +10,7 @@ import org.jooq.JSONB
 import org.springframework.stereotype.Repository
 
 @Repository
-class ArtistRepository(configuration: Configuration) : ArtistDao(configuration) {
+open class ArtistRepository(configuration: Configuration) : ArtistDao(configuration) {
 
     fun findByName(name: String): Artist? {
         return ctx().selectFrom(ARTIST)
