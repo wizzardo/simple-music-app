@@ -1,10 +1,21 @@
 package com.example.be.service
 
+import com.example.be.controller.UploadController
+import com.example.be.db.dto.AlbumDto
+import com.wizzardo.tools.misc.Stopwatch
 import org.springframework.stereotype.Service
 import java.io.File
+import java.nio.file.Files
+import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
+import kotlin.collections.HashMap
 
 @Service
-class FFmpegService {
+class FFmpegService(
+    private val songService: SongService
+) {
+    val bitratePattern = Pattern.compile("([0-9])+ *kb/s")
 
     fun getMetaData(f: File): MetaData {
         val command = "./ffprobe -hide_banner -i \"" + f.canonicalPath + "\""
@@ -44,6 +55,70 @@ class FFmpegService {
             duration = metadata["duration"],
             stream = metadata["stream #0"],
         )
+    }
+
+    fun convert(song: AlbumDto.Song, format: UploadController.AudioFormat, bitrate: Int): ByteArray {
+        if (format == UploadController.AudioFormat.FLAC)
+            if (song.stream.contains("flac"))
+                return songService.getSongData(song)
+            else
+                throw IllegalArgumentException("Upconvert is not preferred");
+
+        val matcher = bitratePattern.matcher(song.stream)
+
+        val b = if (matcher.find())
+            matcher.group(1).toInt()
+        else
+            1024
+
+        if (song.stream.contains(format.name.lowercase())) {
+            if (b <= bitrate)
+                return songService.getSongData(song)
+        }
+
+        return doConvert(song, format, Math.min(bitrate, b))
+    }
+
+    protected fun doConvert(song: AlbumDto.Song, format: UploadController.AudioFormat, bitrate: Int): ByteArray {
+        val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
+        val tempOutFile = File.createTempFile("to_", "." + format.name.lowercase())
+        try {
+            songService.copySongData(song, tempFile)
+
+            val stopwatch = Stopwatch("converting to " + format)
+            val command =
+                arrayOf(
+                    "./ffmpeg",
+                    "-nostdin",
+                    "-y",
+                    "-hide_banner",
+                    "-i",
+                    tempFile.canonicalPath,
+                    "-map",
+                    "a",
+                    "-ab",
+                    bitrate.toString() + "k",
+                    tempOutFile.canonicalPath
+                )
+            println("executing command: ${Arrays.toString(command)}")
+            val process = Runtime.getRuntime().exec(command)
+            val exited = process.waitFor(30, TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroy()
+            }
+
+            println(stopwatch)
+            println("output:")
+            println(String(process.inputStream.readAllBytes()))
+            println("error:")
+            val message = String(process.errorStream.readAllBytes())
+            println(message)
+
+            return Files.readAllBytes(tempOutFile.toPath())
+        } finally {
+            tempFile.delete()
+            tempOutFile.delete()
+        }
     }
 
     class MetaData(

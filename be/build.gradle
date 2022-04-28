@@ -29,6 +29,9 @@ java.sourceCompatibility = JavaVersion.VERSION_11
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
 }
 
 dependencies {
@@ -40,6 +43,7 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "org.flywaydb:flyway-core:8.5.6"
     implementation 'com.zaxxer:HikariCP:5.0.1'
+    implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
     implementation "org.postgresql:postgresql:$postgresqlVersion"
 
     implementation "org.jooq:jooq:$jooqVersion"

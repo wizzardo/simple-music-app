@@ -2,6 +2,7 @@ package com.example.be.controller
 
 import com.example.be.db.dto.ArtistDto
 import com.example.be.service.ArtistService
+import com.example.be.service.FFmpegService
 import com.example.be.service.SongService
 import com.example.be.service.UploadService
 import org.springframework.http.HttpHeaders
@@ -16,6 +17,7 @@ class UploadController(
     private val uploadService: UploadService,
     private val artistService: ArtistService,
     private val songService: SongService,
+    private val ffmpegService: FFmpegService,
 ) {
 
     @PostMapping("/upload")
@@ -32,8 +34,32 @@ class UploadController(
         @PathVariable albumName: String,
         @PathVariable trackNumber: Int,
     ): ResponseEntity<ByteArray> {
-        val songData = songService.getSongData(artistId, albumName, trackNumber)
-        val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType("audio/mpeg") }
+        val song = songService.getSong(artistId, albumName, trackNumber)
+        val songData = songService.getSongData(song)
+        val type = AudioFormat.values().find { song.path.endsWith(it.name, true) }?.mimeType
+        val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream") }
         return ResponseEntity(songData, headers, HttpStatus.OK)
+    }
+
+    enum class AudioFormat(val mimeType: String) {
+        MP3("audio/mpeg"),
+        AAC("audio/aac"),
+        OGG("audio/ogg"),
+        OPUS("audio/opus"),
+        FLAC("audio/x-flac");
+    }
+
+    @GetMapping("/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}")
+    fun getSongConverted(
+        @PathVariable artistId: Long,
+        @PathVariable albumName: String,
+        @PathVariable trackNumber: Int,
+        @PathVariable format: AudioFormat,
+        @PathVariable bitrate: Int,
+    ): ResponseEntity<ByteArray> {
+        val song = songService.getSong(artistId, albumName, trackNumber)
+        val data = ffmpegService.convert(song, format, bitrate)
+        val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(format.mimeType) }
+        return ResponseEntity(data, headers, HttpStatus.OK)
     }
 }
