@@ -7,14 +7,16 @@ import java.io.File
 class FFmpegService {
 
     fun getMetaData(f: File): MetaData {
-        val process = Runtime.getRuntime().exec("./ffprobe -hide_banner -i " + f.absolutePath)
+        val command = "./ffprobe -hide_banner -i \"" + f.canonicalPath + "\""
+        println("executing command: $command")
+        val process = Runtime.getRuntime().exec(arrayOf("./ffprobe", "-hide_banner", "-i", f.canonicalPath))
         process.waitFor()
         println("output:")
         println(String(process.inputStream.readAllBytes()))
 
         println("error:")
         var message = String(process.errorStream.readAllBytes())
-//        println(message)
+        println(message)
 
         val start = message.indexOf("Metadata")
         if (start == -1)
@@ -24,8 +26,11 @@ class FFmpegService {
         val metadata: MutableMap<String, String> = HashMap()
         for (s in message.split("\n")) {
             val (key, value) = s.trim().split(Regex(":"), 2)
-            if (value.isNotBlank())
-                metadata[key.trim()] = value.trim()
+            if (value.isNotBlank()) {
+                val normalizedKey = key.trim().lowercase()
+                if (!metadata.containsKey(normalizedKey))
+                    metadata[normalizedKey] = value.trim()
+            }
         }
 
 //        println(metadata)
@@ -36,8 +41,8 @@ class FFmpegService {
             title = metadata["title"],
             track = metadata["track"]?.toInt(),
             comment = metadata["comment"],
-            duration = metadata["Duration"],
-            stream = metadata["Stream #0"],
+            duration = metadata["duration"],
+            stream = metadata["stream #0"],
         )
     }
 
