@@ -5,7 +5,6 @@ import json from 'rollup-plugin-json';
 import replace from 'rollup-plugin-replace';
 import styles from "rollup-plugin-styles";
 import {terser} from "rollup-plugin-terser";
-import typescript from '@rollup/plugin-typescript';
 import fs from "fs-extra";
 
 const env = process.env.NODE_ENV || 'production';
@@ -33,13 +32,13 @@ const prepareHtml = () => {
     fs.writeFileSync('build/index.html', htmlTemplate, {encoding: "utf8",})
 }
 
-const copyAssets = () => fs.copySync('src/assets', 'build/assets');
+const copyCss = () => fs.copySync('buildts/bundle.css', `build/static/${version}/bundle.css`);
 
 prepareHtml();
-copyAssets();
+copyCss();
 
 export default {
-    input: 'src/index.js',
+    input: 'buildts/src/index.js',
     output: [
         {
             dir: `build/static/${version}`,
@@ -49,6 +48,7 @@ export default {
             assetFileNames: "[name][extname]",
         },
     ],
+    preserveModules: false,
     treeshake: isProd,
     inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
     // experimentalOptimizeChunks: true,
@@ -68,15 +68,10 @@ export default {
             browser: true,
         }),
         json(),
-        // alias({
-        //     entries: [
-        //         { find: 'react', replacement: 'preact/compat' },
-        //         { find: 'react-dom', replacement: 'preact/compat' }
-        //     ]
-        // }),
         commonjs({
             include: [
                 'node_modules/**',
+                'buildts/**',
             ],
             exclude: [
                 'node_modules/process-es6/**',
@@ -88,9 +83,6 @@ export default {
                 'node_modules/react-redux/node_modules/react-is/index.js': ['isValidElementType', 'isContextConsumer'],
                 'node_modules/react-dom/index.js': ['render', 'unstable_batchedUpdates'],
                 'node_modules/react/jsx-runtime.js': ['jsx', 'jsxs'],
-                // 'node_modules/chart.js/src/chart.js': ['Chart'],
-                // 'node_modules/chart.js/dist/Chart.js': ['Chart'],
-                // 'node_modules/react-sparklines/build/index.js': ['Sparklines', 'SparklinesLine'],
             },
         }),
         babel({
@@ -102,7 +94,10 @@ export default {
             ],
             babelrc: false,
             presets: [
-                ["@babel/env", {"modules": false}],
+                ["@babel/env", {
+                    "modules": false,
+                    "targets": '> 2% and last 5 versions'
+            }],
                 ["@babel/react", {"pragma": "ReactCreateElement"}],
             ],
             plugins: [
@@ -123,16 +118,8 @@ export default {
 
                 "transform-react-remove-prop-types",
                 ["babel-plugin-jsx-pragmatic", {module: "react-ui-basics/ReactCreateElement", import: "ReactCreateElement"}],
-                ["module-resolver", {
-                    "root": ["./src"],
-                    "alias": {
-                        'react': 'preact/compat',
-                        'react-dom': 'preact/compat',
-                    }
-                }],
             ],
         }),
-        typescript(),
         (isProd && terser()),
         replace({
             'process.env.NODE_ENV': JSON.stringify(env),
