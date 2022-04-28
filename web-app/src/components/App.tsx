@@ -4,6 +4,8 @@ import {classNames} from "react-ui-basics/Tools";
 import Button from "react-ui-basics/Button";
 import ProgressBar from "./ProgressBar";
 import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
+import {UploadForm} from "./UploadForm";
+import NetworkService from "../services/NetworkService";
 
 const audioUrl = "https://cdn.pixabay.com/download/audio/2022/03/23/audio_07b2a04be3.mp3?filename=order-99518.mp3";
 const audioUrl2 = "https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1bdd.mp3?filename=the-cradle-of-your-soul-15700.mp3";
@@ -111,6 +113,11 @@ export default () => {
 
     }, [context, audio, playing, offset])
 
+    const [artists, setArtists] = useState([])
+    useEffect(async () => {
+        const artists = await NetworkService.getArtists()
+        setArtists(artists)
+    }, [])
 
     return (
         <div className={classNames("App")}>
@@ -132,6 +139,9 @@ export default () => {
             <br/>
 
             <Button onClick={e => setPlaying(!playing)}>{!playing ? 'play' : 'stop'}</Button>
+            <br/>
+            <br/>
+            <UploadForm/>
         </div>
     );
 }
