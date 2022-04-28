@@ -28,4 +28,4 @@ logging.level:
 logging.pattern.console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{5}.%M - %msg%n'
 
 storage:
-  path: /tmp/storage
+  path: share
