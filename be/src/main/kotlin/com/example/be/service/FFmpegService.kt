@@ -1,6 +1,6 @@
 package com.example.be.service
 
-import com.example.be.controller.UploadController
+import com.example.be.controller.ArtistController
 import com.example.be.db.dto.AlbumDto
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.misc.Stopwatch
@@ -62,9 +62,9 @@ class FFmpegService(
         )
     }
 
-    fun convert(song: AlbumDto.Song, format: UploadController.AudioFormat, bitrate: Int): ByteArray {
+    fun convert(song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
-        if (format == UploadController.AudioFormat.FLAC)
+        if (format == ArtistController.AudioFormat.FLAC)
             if (audio.contains("flac"))
                 return songService.getSongData(song)
             else
@@ -85,7 +85,7 @@ class FFmpegService(
         return doConvert(song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(song: AlbumDto.Song, format: UploadController.AudioFormat, bitrate: Int): ByteArray {
+    protected fun doConvert(song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
         val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
         val tempOutFile = File.createTempFile("to_", "." + format.name.lowercase())
         try {
