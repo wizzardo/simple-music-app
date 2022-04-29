@@ -6,6 +6,7 @@ import com.example.be.db.repository.ArtistRepository
 import com.example.be.service.FFmpegService.MetaData
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.wizzardo.tools.security.MD5
 import org.jooq.JSONB
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -28,10 +29,10 @@ class UploadService(
     fun upload(
         file: MultipartFile
     ): ResponseEntity<Any> {
-        val destination = File("/tmp/", file.originalFilename ?: file.name)
+        val tempFile = File("/tmp/", file.originalFilename ?: file.name)
         try {
-            file.transferTo(destination)
-            val metaData: MetaData = ffmpegService.getMetaData(destination)
+            file.transferTo(tempFile)
+            val metaData: MetaData = ffmpegService.getMetaData(tempFile)
 
             val pathArtist = metaData.artist
                 ?.replace("/", " - ")
@@ -45,32 +46,32 @@ class UploadService(
             val track = metaData.track
 
             val albumPath = "$pathArtist/$album"
-            val fileName = "$track - $title.${destination.extension}"
+            val fileName = "$track - $title.${tempFile.extension}"
             val albumFolder = File(storagePath, albumPath)
             albumFolder.mkdirs()
             val target = File(albumFolder, fileName)
             if (target.exists())
                 throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
 
-            destination.copyTo(target)
+            tempFile.copyTo(target)
 
             while (true) {
                 try {
-                    addSong(metaData, "$albumPath/$fileName")
+                    addSong(metaData, "$albumPath/$fileName", target)
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
                 }
             }
         } finally {
-            destination.delete()
+            tempFile.delete()
         }
 
         return ResponseEntity.noContent().build()
     }
 
     @Transactional
-    fun addSong(metaData: MetaData, relativePath: String) {
+    fun addSong(metaData: MetaData, relativePath: String, audio: File) {
         var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
         if (artist == null) {
             artist = createArtistDto(metaData)
@@ -81,6 +82,18 @@ class UploadService(
         val album = albums.find { it.name == metaData.album }
             ?: createAlbum(metaData).also { albums.add(it) }
         album.songs += createSong(metaData, relativePath)
+
+        if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
+            val cover = relativePath.substringBeforeLast("/") + "/cover.jpg"
+            try {
+                val coverFile = File(storagePath, cover)
+                ffmpegService.extractCoverArt(audio, coverFile)
+                album.coverPath = cover
+                album.coverHash = MD5.create().update(coverFile.readBytes()).toString()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         artistRepository.updateAlbums(artist, albums, objectMapper)
     }
@@ -103,7 +116,7 @@ class UploadService(
         metaData.title?.let { this.title = it }
         metaData.comment?.let { this.comment = it }
         metaData.duration?.let { this.duration = getMillis(it) }
-        metaData.stream?.let { this.stream = it }
+        metaData.streams.let { this.streams = it }
         path = relativePath
     }
 

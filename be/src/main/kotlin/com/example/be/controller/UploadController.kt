@@ -19,6 +19,9 @@ class UploadController(
     private val songService: SongService,
     private val ffmpegService: FFmpegService,
 ) {
+    companion object {
+        val MAX_AGE_1_YEAR = "max-age=31556926"
+    }
 
     @PostMapping("/upload")
     fun upload(
@@ -27,6 +30,14 @@ class UploadController(
 
     @GetMapping("/artists")
     fun getArtists(): List<ArtistDto> = artistService.getArtists()
+
+    @GetMapping("/artists/{id}")
+    fun getArtist(
+        @PathVariable id: Long
+    ): ResponseEntity<ArtistDto> {
+        val item: ArtistDto = artistService.getArtist(id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(item)
+    }
 
     @GetMapping("/artists/{artistId}/{albumName}/{trackNumber}")
     fun getSong(
@@ -60,6 +71,30 @@ class UploadController(
         val song = songService.getSong(artistId, albumName, trackNumber)
         val data = ffmpegService.convert(song, format, bitrate)
         val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(format.mimeType) }
+        return ResponseEntity(data, headers, HttpStatus.OK)
+    }
+
+    @GetMapping("/artists/{artistName}/{albumName}/cover.jpg")
+    fun getAlbumCover(
+        @PathVariable artistName: String,
+        @PathVariable albumName: String,
+        @RequestHeader(value = "If-None-Match", required = false) ifNoneMatch: String?,
+    ): ResponseEntity<ByteArray> {
+        val artist = artistService.getArtistByName(artistName) ?: return ResponseEntity.notFound().build()
+        val album = songService.getAlbum(artist, albumName)
+        if (album.coverPath == null)
+            return ResponseEntity.notFound().build()
+
+        if (ifNoneMatch != null && ifNoneMatch == "\"" + album.coverHash + "\"")
+            return ResponseEntity<ByteArray>(HttpStatus.NOT_MODIFIED)
+
+        val data = songService.getAlbumCoverData(album)
+
+        val headers = HttpHeaders().apply {
+            this.contentType = MediaType.parseMediaType("image/jpeg")
+            this.cacheControl = MAX_AGE_1_YEAR
+            this.eTag = "\"" + album.coverHash + "\""
+        }
         return ResponseEntity(data, headers, HttpStatus.OK)
     }
 }

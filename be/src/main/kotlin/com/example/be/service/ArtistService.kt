@@ -15,4 +15,12 @@ class ArtistService(
     fun getArtists(): List<ArtistDto> {
         return artistRepository.findAll().map { artist -> artist.toArtistDto(objectMapper) }
     }
+
+    fun getArtist(id: Long): ArtistDto? {
+        return artistRepository.findById(id)?.toArtistDto(objectMapper)
+    }
+
+    fun getArtistByName(name: String): ArtistDto? {
+        return artistRepository.findByName(name)?.toArtistDto(objectMapper)
+    }
 }

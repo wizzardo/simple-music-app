@@ -4,6 +4,8 @@ class AlbumDto(
     var date: String = "",
     var name: String = "",
     var songs: List<Song> = emptyList(),
+    var coverPath: String? = null,
+    var coverHash: String? = null,
 ) {
 
     class Song(
@@ -11,11 +13,11 @@ class AlbumDto(
         var title: String = "",
         var comment: String = "",
         var duration: Int = 0,
-        var stream: String = "",
+        var streams: List<String> = emptyList(),
         var path: String = ""
     ) {
         override fun toString(): String {
-            return "Song(track=$track, title='$title', comment='$comment', duration=$duration, stream='$stream', path='$path')"
+            return "Song(track=$track, title='$title', comment='$comment', duration=$duration, streams='$streams', path='$path')"
         }
     }
 

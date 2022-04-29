@@ -2,6 +2,7 @@ package com.example.be.service
 
 import com.example.be.controller.UploadController
 import com.example.be.db.dto.AlbumDto
+import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.misc.Stopwatch
 import org.springframework.stereotype.Service
 import java.io.File
@@ -36,7 +37,11 @@ class FFmpegService(
         message = message.substring(start + 9).trim()
         val metadata: MutableMap<String, String> = HashMap()
         for (s in message.split("\n")) {
-            val (key, value) = s.trim().split(Regex(":"), 2)
+            val arr = s.trim().split(Regex(": "), 2)
+            if (arr.size != 2)
+                continue
+
+            val (key, value) = arr
             if (value.isNotBlank()) {
                 val normalizedKey = key.trim().lowercase()
                 if (!metadata.containsKey(normalizedKey))
@@ -53,25 +58,26 @@ class FFmpegService(
             track = metadata["track"]?.toInt(),
             comment = metadata["comment"],
             duration = metadata["duration"],
-            stream = metadata["stream #0"],
+            streams = metadata.keys.filter { it.startsWith("stream") }.map { metadata[it]!! },
         )
     }
 
     fun convert(song: AlbumDto.Song, format: UploadController.AudioFormat, bitrate: Int): ByteArray {
+        val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == UploadController.AudioFormat.FLAC)
-            if (song.stream.contains("flac"))
+            if (audio.contains("flac"))
                 return songService.getSongData(song)
             else
                 throw IllegalArgumentException("Upconvert is not preferred");
 
-        val matcher = bitratePattern.matcher(song.stream)
+        val matcher = bitratePattern.matcher(audio)
 
         val b = if (matcher.find())
             matcher.group(1).toInt()
         else
-            1024
+            320
 
-        if (song.stream.contains(format.name.lowercase())) {
+        if (audio.contains(format.name.lowercase())) {
             if (b <= bitrate)
                 return songService.getSongData(song)
         }
@@ -121,6 +127,39 @@ class FFmpegService(
         }
     }
 
+    fun extractCoverArt(audio: File, to: File) {
+        val tempFile = File.createTempFile("cover", ".png")
+        try {
+            val command =
+                arrayOf(
+                    "./ffmpeg",
+                    "-nostdin",
+                    "-y",
+                    "-hide_banner",
+                    "-i",
+                    audio.canonicalPath,
+                    "-an",
+                    tempFile.canonicalPath
+                )
+            println("executing command: ${Arrays.toString(command)}")
+            val process = Runtime.getRuntime().exec(command)
+            val exited = process.waitFor(30, TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroy()
+            }
+            println("output:")
+            println(String(process.inputStream.readAllBytes()))
+            println("error:")
+            val message = String(process.errorStream.readAllBytes())
+            println(message)
+
+            val image = ImageTools.read(tempFile)
+            ImageTools.saveJPG(image, to, 90)
+        } finally {
+            tempFile.delete()
+        }
+    }
+
     class MetaData(
         val date: String? = null,
         val album: String? = null,
@@ -129,6 +168,6 @@ class FFmpegService(
         val track: Int? = null,
         val comment: String? = null,
         val duration: String? = null,
-        val stream: String? = null,
+        val streams: List<String> = emptyList(),
     )
 }
