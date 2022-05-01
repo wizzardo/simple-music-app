@@ -1,6 +1,8 @@
 package com.example.be.db.dto
 
 class AlbumDto(
+    var id: String = "",
+    var path: String = "",
     var date: String = "",
     var name: String = "",
     var songs: List<Song> = emptyList(),
@@ -9,6 +11,7 @@ class AlbumDto(
 ) {
 
     class Song(
+        var id: String = "",
         var track: Int = 0,
         var title: String = "",
         var comment: String = "",

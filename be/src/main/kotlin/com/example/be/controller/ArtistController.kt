@@ -33,6 +33,16 @@ class ArtistController(
         return ResponseEntity.ok(item)
     }
 
+    @PostMapping("/artists/{id}")
+    fun updateArtist(
+        @PathVariable id: Long,
+        @RequestBody data: ArtistDto,
+    ): ResponseEntity<ArtistDto> {
+        val item: ArtistDto = artistService.getArtist(id) ?: return ResponseEntity.notFound().build()
+        val updated = artistService.update(id, item, data)
+        return ResponseEntity.ok(updated)
+    }
+
     @GetMapping("/artists/{artistId}/{albumName}/{trackNumber}")
     fun getSong(
         @PathVariable artistId: Long,

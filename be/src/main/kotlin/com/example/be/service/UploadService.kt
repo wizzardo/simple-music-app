@@ -24,6 +24,7 @@ class UploadService(
     private val objectMapper: ObjectMapper,
     private val ffmpegService: FFmpegService,
     private val artistRepository: ArtistRepository,
+    private val randomIdService: RandomIdService,
 ) {
 
     fun upload(
@@ -34,7 +35,7 @@ class UploadService(
             file.transferTo(tempFile)
             val metaData: MetaData = ffmpegService.getMetaData(tempFile)
 
-            val pathArtist = metaData.artist
+            val artistPath = metaData.artist
                 ?.replace("/", " - ")
                 ?: throw IllegalArgumentException("artist tag is empty!")
             val album = metaData.album
@@ -45,7 +46,7 @@ class UploadService(
                 ?: throw IllegalArgumentException("title tag is empty!")
             val track = metaData.track
 
-            val albumPath = "$pathArtist/$album"
+            val albumPath = "$artistPath/$album"
             val fileName = "$track - $title.${tempFile.extension}"
             val albumFolder = File(storagePath, albumPath)
             albumFolder.mkdirs()
@@ -55,9 +56,11 @@ class UploadService(
 
             tempFile.copyTo(target)
 
+            val artist = getOrCreateArtist(metaData)
+
             while (true) {
                 try {
-                    addSong(metaData, "$albumPath/$fileName", target)
+                    addSong(artist, metaData, albumPath, fileName, target)
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
@@ -71,20 +74,14 @@ class UploadService(
     }
 
     @Transactional
-    fun addSong(metaData: MetaData, relativePath: String, audio: File) {
-        var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
-        if (artist == null) {
-            artist = createArtistDto(metaData)
-            artistRepository.insert(artist)
-        }
-
+    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName:String, audio: File) {
         val albums: MutableList<AlbumDto> = objectMapper.readValue(artist.albums?.data(), object : TypeReference<ArrayList<AlbumDto>>() {})
         val album = albums.find { it.name == metaData.album }
-            ?: createAlbum(metaData).also { albums.add(it) }
-        album.songs += createSong(metaData, relativePath)
+            ?: createAlbum(metaData, albumPath).also { albums.add(it) }
+        album.songs += createSong(metaData, "$albumPath/$fileName")
 
         if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
-            val cover = relativePath.substringBeforeLast("/") + "/cover.jpg"
+            val cover = albumPath + "/cover.jpg"
             try {
                 val coverFile = File(storagePath, cover)
                 ffmpegService.extractCoverArt(audio, coverFile)
@@ -98,6 +95,16 @@ class UploadService(
         artistRepository.updateAlbums(artist, albums, objectMapper)
     }
 
+    @Transactional
+    fun getOrCreateArtist(metaData: MetaData): Artist {
+        var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
+        if (artist == null) {
+            artist = createArtistDto(metaData)
+            artistRepository.insert(artist)
+        }
+        return artist
+    }
+
     private fun createArtistDto(metaData: MetaData): Artist = Artist().apply {
         created = LocalDateTime.now()
         updated = LocalDateTime.now()
@@ -105,13 +112,16 @@ class UploadService(
         albums = JSONB.valueOf("[]")
     }
 
-    private fun createAlbum(metaData: MetaData): AlbumDto = AlbumDto().apply {
+    private fun createAlbum(metaData: MetaData, relativePath: String): AlbumDto = AlbumDto().apply {
+        id = randomIdService.generateId()
+        path = relativePath
         metaData.date?.let { this.date = it }
         metaData.album?.let { this.name = it }
         this.songs = emptyList()
     }
 
     private fun createSong(metaData: MetaData, relativePath: String): AlbumDto.Song = AlbumDto.Song().apply {
+        id = randomIdService.generateId()
         metaData.track?.let { this.track = it }
         metaData.title?.let { this.title = it }
         metaData.comment?.let { this.comment = it }
