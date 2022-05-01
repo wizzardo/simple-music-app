@@ -31,7 +31,7 @@ export class FetchOptions {
 
 const DEFAULT_OPTIONS = new FetchOptions()
 
-export const fetch = (url, options: FetchOptions = DEFAULT_OPTIONS) => {
+export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
     const method = options.method || 'GET'
     const params = options.params || {};
     if (method === 'GET' || method === 'DELETE') {
@@ -144,10 +144,10 @@ export const fetch = (url, options: FetchOptions = DEFAULT_OPTIONS) => {
         return request
     };
 
-    if (!window.Promise)
-        return makeRequest(options.onSuccess, options.onError);
+    // if (!window.Promise)
+    //     return makeRequest(options.onSuccess, options.onError);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
         const success = data => (options.onSuccess || resolve)(data);
         const error = (e, status) => (options.onError || reject)(e, status);
         makeRequest(success, error);

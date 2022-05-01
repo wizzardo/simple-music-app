@@ -6,6 +6,8 @@ import ProgressBar from "./ProgressBar";
 import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
 import {UploadForm} from "./UploadForm";
 import NetworkService from "../services/NetworkService";
+import Route from "react-ui-basics/router/Route";
+import LibraryEditor from "./LibraryEditor";
 
 const audioUrl = "https://cdn.pixabay.com/download/audio/2022/03/23/audio_07b2a04be3.mp3?filename=order-99518.mp3";
 const audioUrl2 = "https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1bdd.mp3?filename=the-cradle-of-your-soul-15700.mp3";
@@ -32,7 +34,7 @@ const load = (url, context, setAudio, localCache: SongLocalCacheDB) => {
     request.send();
 };
 
-const playSound = (context, buffer, offset) => {
+const playSound = (context, buffer, offset): AudioBufferSourceNode => {
     var source = context.createBufferSource();
     source.buffer = buffer;
     source.connect(context.destination);
@@ -41,7 +43,7 @@ const playSound = (context, buffer, offset) => {
 };
 
 export default () => {
-    const [context, setContext] = useState()
+    const [context, setContext] = useState<AudioContext>()
     const localCache = useLocalCache();
 
     useEffect(() => {
@@ -50,28 +52,30 @@ export default () => {
     }, [])
 
 
-    const [audio, setAudio] = useState()
-    useEffect(async () => {
-        if (!context)
-            return
-        if (!localCache)
-            return
+    const [audio, setAudio] = useState<AudioBuffer>()
+    useEffect(() => {
+        (async () => {
+            if (!context)
+                return
+            if (!localCache)
+                return
 
-        const song = await localCache.songByUrl(audioUrl);
-        console.log('songByUrl', song)
-        if (!song) {
-            load(audioUrl, context, setAudio, localCache)
-        } else {
-            const sd = await localCache.songData(song.dataId)
-            context.decodeAudioData(sd.data, setAudio, e => console.error(e))
-        }
+            const song = await localCache.songByUrl(audioUrl);
+            console.log('songByUrl', song)
+            if (!song) {
+                load(audioUrl, context, setAudio, localCache)
+            } else {
+                const sd = await localCache.songData(song.dataId)
+                context.decodeAudioData(sd.data, setAudio, e => console.error(e))
+            }
+        })().catch(console.error)
     }, [context, localCache])
 
     const [playing, setPlaying] = useState(false)
-    const [source, setSource] = useState(false)
+    const [source, setSource] = useState<AudioBufferSourceNode>()
     const [progress, setProgress] = useState(0)
     const [offset, setOffset] = useState(0)
-    const [updater, setUpdater] = useState()
+    const [updater, setUpdater] = useState<NodeJS.Timer>()
 
     useEffect(() => {
         if (!source)
@@ -113,15 +117,14 @@ export default () => {
 
     }, [context, audio, playing, offset])
 
-    const [artists, setArtists] = useState([])
-    useEffect(async () => {
-        const artists = await NetworkService.getArtists()
-        setArtists(artists)
-    }, [])
 
     return (
         <div className={classNames("App")}>
             {/*{audio?.duration}*/}
+
+            <Route path={"/edit/:artistId?/:album?"}>
+                <LibraryEditor album={null} artistId={null}/>
+            </Route>
 
             <br/>
 

@@ -44,6 +44,8 @@
     "@babel/preset-react": "^7.16.7",
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-typescript": "^8.3.1",
+    "@types/react": "^17.0.44",
+    "@types/react-dom": "^17.0.16",
     "babel-plugin-jsx-pragmatic": "1.0.2",
     "babel-plugin-module-resolver": "4.1.0",
     "babel-plugin-transform-react-remove-prop-types": "0.4.24",
@@ -69,12 +71,14 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
+    "dayjs": "^1.11.1",
+    "goober": "^2.1.9",
     "preact": "^10.6.6",
     "preact-render-to-string": "^5.1.20",
     "preact-router": "^4.0.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "react-ui-basics": "0.0.163"
+    "react-ui-basics": "0.0.164"
   },
   "jest": {
     "preset": "jest-preset-preact",

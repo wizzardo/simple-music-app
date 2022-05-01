@@ -45,7 +45,7 @@ export default {
                 'node_modules/react-is/index.js': ['isValidElementType', 'isContextConsumer'],
                 'node_modules/react-redux/node_modules/react-is/index.js': ['isValidElementType', 'isContextConsumer'],
                 'node_modules/react-dom/index.js': ['render', 'unstable_batchedUpdates'],
-                'node_modules/react/jsx-runtime.js': ['jsx', 'jsxs'],
+                'node_modules/react/jsx-runtime.js': ['jsx', 'jsxs', 'Fragment'],
             },
         }),
         typescript(),

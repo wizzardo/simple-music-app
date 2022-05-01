@@ -26,8 +26,8 @@ if (!fs.existsSync('build'))
 
 const prepareHtml = () => {
     let htmlTemplate = fs.readFileSync('src/template.html', {encoding: 'utf8', flag: 'r'});
-    htmlTemplate = htmlTemplate.replace('<% preact.headEnd %>', `<link  href="static/${version}/bundle.css" rel="stylesheet">`)
-    htmlTemplate = htmlTemplate.replace('<% preact.bodyEnd %>', `<script defer src="static/${version}/index.js"></script>`)
+    htmlTemplate = htmlTemplate.replace('<% preact.headEnd %>', `<link  href="/static/${version}/bundle.css" rel="stylesheet">`)
+    htmlTemplate = htmlTemplate.replace('<% preact.bodyEnd %>', `<script defer src="/static/${version}/index.js"></script>`)
 
     fs.writeFileSync('build/index.html', htmlTemplate, {encoding: "utf8",})
 }
@@ -82,7 +82,7 @@ export default {
                 'node_modules/react-is/index.js': ['isValidElementType', 'isContextConsumer'],
                 'node_modules/react-redux/node_modules/react-is/index.js': ['isValidElementType', 'isContextConsumer'],
                 'node_modules/react-dom/index.js': ['render', 'unstable_batchedUpdates'],
-                'node_modules/react/jsx-runtime.js': ['jsx', 'jsxs'],
+                'node_modules/react/jsx-runtime.js': ['jsx', 'jsxs', 'Fragment'],
             },
         }),
         babel({

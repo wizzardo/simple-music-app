@@ -5,12 +5,27 @@ import MaterialIcon from 'react-ui-basics/MaterialIcon'
 import {debounce, orNoop} from "react-ui-basics/Tools";
 import NetworkService from "../services/NetworkService";
 import './UploadForm.css'
+import {styled} from "goober";
+import {css} from "goober";
+
+const FilesTableClass = css({
+    width: '100%',
+});
+
+interface SongFile {
+    cancel: () => void;
+    progress: number;
+    name: string;
+    finished: boolean
+    uploading: boolean
+    file: File
+}
 
 export const UploadForm = ({}) => {
-    const [files, setFiles] = useState([])
+    const [files, setFiles] = useState<SongFile[]>([])
     const [uploading, setUploading] = useState(false)
 
-    const filesRef = useRef()
+    const filesRef = useRef<SongFile[]>()
     filesRef.current = files
 
     const startUploadingNextFile = () => {
@@ -21,7 +36,7 @@ export const UploadForm = ({}) => {
         }
 
         const update = (newProps) => {
-            setFiles(files =>{
+            setFiles(files => {
                 const index = files.findIndex(it => it.file === next.file);
                 if (index === -1)
                     return files;
@@ -38,7 +53,7 @@ export const UploadForm = ({}) => {
         }
 
         update({uploading: true})
-        NetworkService.uploadSong({file: next.file}, {
+        NetworkService.upload({file: next.file}, {
             provideCancel: (cancel) => {
                 update({cancel})
             },
@@ -66,7 +81,7 @@ export const UploadForm = ({}) => {
     }
 
     return <div className={'UploadForm'}>
-        <table className={'files'}>
+        <table className={FilesTableClass}>
             <tbody>
             {files.map(file => {
                 return <tr className={'file'} key={file.name}>

@@ -6,9 +6,7 @@ type Params = { [id: string]: any };
 type UrlMaker = (params: Params) => string;
 
 const variablePatter = /\{(\w+)\}/g;
-const createUrlMaker = (template: string): UrlMaker => {
-    let actualFunction
-
+const createUrlMaker = (template: string, deleteVars: boolean = false): UrlMaker => {
     let parts = [];
     let variables = [];
 
@@ -32,8 +30,12 @@ const createUrlMaker = (template: string): UrlMaker => {
         for (let i = 0; i < length; i++) {
             if (m[i] !== null)
                 s += m[i];
-            if (params && v[i] !== null && params[v[i]] != null)
-                s += encodeURIComponent(params[v[i]]);
+            let param = params[v[i]];
+            if (params && v[i] !== null && param != null) {
+                s += encodeURIComponent(param);
+                if (deleteVars)
+                    delete params[v[i]]
+            }
         }
         return s;
     };
@@ -50,18 +52,18 @@ const lazy = <T extends Function>(f: ((...any) => T), ...args): any => {
 }
 
 const createGET = <R>(template: string) => {
-    let urlMaker: (UrlMaker) = lazy(createUrlMaker, template);
-    return async (params?: Params,) => fetch(`${baseurl}${urlMaker(params)}`, {params});
+    let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
+    return async (params?: Params,) => fetch<R>(`${baseurl}${urlMaker(params)}`, {params});
 };
 
 
-const createPOST = <R>(template: string) => {
+const createPOST = <R, P extends Params>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template);
-    return async (params?: Params,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
+    return async (params?: P,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
 };
 
 const createDelete = <R>(template: string) => {
-    let urlMaker: (UrlMaker) = lazy(createUrlMaker, template);
+    let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
     return async (params?: Params,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "DELETE"});
 };
 
@@ -79,6 +81,47 @@ const createMultipart = <R>(template: string) => {
 };
 
 export default {
-    getArtists: createGET('/artists'),
-    uploadSong: createMultipart('/upload')
+    baseurl,
+    //generated endpoints start
+    getAlbumCover: createGET<number[]>('/artists/{artistName}/{albumName}/cover.jpg'),
+    getArtist: createGET<ArtistDto>('/artists/{id}'),
+    getArtists: createGET<Array<ArtistDto>>('/artists'),
+    getSong: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}'),
+    getSongConverted: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}'),
+    updateArtist: createPOST<ArtistDto, ArtistDto>('/artists/{id}'),
+
+
+    upload: createMultipart<Object>('/upload'),
+//generated endpoints end
 }
+
+//generated types start
+export interface ArtistDto {
+    id: number,
+    created: string,
+    updated: string,
+    name: string,
+    albums: Array<AlbumDto>,
+}
+
+export interface AlbumDto {
+    id: string,
+    path: string,
+    date: string,
+    name: string,
+    songs: Array<AlbumDtoSong>,
+    coverPath: string | null,
+    coverHash: string | null,
+}
+
+export interface AlbumDtoSong {
+    id: string,
+    track: number,
+    title: string,
+    comment: string,
+    duration: number,
+    streams: Array<string>,
+    path: string,
+}
+
+//generated types end
