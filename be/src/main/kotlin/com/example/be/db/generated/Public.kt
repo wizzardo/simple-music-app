@@ -6,10 +6,14 @@ package com.example.be.db.generated
 
 import com.example.be.db.generated.tables.Artist
 import com.example.be.db.generated.tables.FlywaySchemaHistory
+
+import javax.annotation.processing.Generated
+
+import kotlin.collections.List
+
 import org.jooq.Catalog
 import org.jooq.Table
 import org.jooq.impl.SchemaImpl
-import javax.annotation.processing.Generated
 
 
 /**

@@ -7,13 +7,27 @@ package com.example.be.db.generated.tables
 import com.example.be.db.generated.Public
 import com.example.be.db.generated.keys.ARTIST_PKEY
 import com.example.be.db.generated.tables.records.ArtistRecord
-import org.jooq.*
+
+import java.time.LocalDateTime
+
+import javax.annotation.processing.Generated
+
+import org.jooq.Field
+import org.jooq.ForeignKey
+import org.jooq.Identity
+import org.jooq.JSONB
+import org.jooq.Name
+import org.jooq.Record
+import org.jooq.Row6
+import org.jooq.Schema
+import org.jooq.Table
+import org.jooq.TableField
+import org.jooq.TableOptions
+import org.jooq.UniqueKey
 import org.jooq.impl.DSL
 import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
-import java.time.LocalDateTime
-import javax.annotation.processing.Generated
 
 
 /**
@@ -81,6 +95,11 @@ open class Artist(
      */
     val ALBUMS: TableField<ArtistRecord, JSONB?> = createField(DSL.name("albums"), SQLDataType.JSONB, this, "")
 
+    /**
+     * The column <code>public.artist.path</code>.
+     */
+    val PATH: TableField<ArtistRecord, String?> = createField(DSL.name("path"), SQLDataType.VARCHAR(256), this, "")
+
     private constructor(alias: Name, aliased: Table<ArtistRecord>?): this(alias, null, null, aliased, null)
     private constructor(alias: Name, aliased: Table<ArtistRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
 
@@ -117,7 +136,7 @@ open class Artist(
     override fun rename(name: Name): Artist = Artist(name, null)
 
     // -------------------------------------------------------------------------
-    // Row5 type methods
+    // Row6 type methods
     // -------------------------------------------------------------------------
-    override fun fieldsRow(): Row5<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?> = super.fieldsRow() as Row5<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?>
+    override fun fieldsRow(): Row6<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?, String?> = super.fieldsRow() as Row6<Long?, LocalDateTime?, LocalDateTime?, String?, JSONB?, String?>
 }

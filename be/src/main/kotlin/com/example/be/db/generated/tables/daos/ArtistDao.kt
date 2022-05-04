@@ -6,11 +6,16 @@ package com.example.be.db.generated.tables.daos
 
 import com.example.be.db.generated.tables.Artist
 import com.example.be.db.generated.tables.records.ArtistRecord
+
+import java.time.LocalDateTime
+
+import javax.annotation.processing.Generated
+
+import kotlin.collections.List
+
 import org.jooq.Configuration
 import org.jooq.JSONB
 import org.jooq.impl.DAOImpl
-import java.time.LocalDateTime
-import javax.annotation.processing.Generated
 
 
 /**
@@ -92,4 +97,15 @@ open class ArtistDao(configuration: Configuration?) : DAOImpl<ArtistRecord, com.
      * Fetch records that have <code>albums IN (values)</code>
      */
     fun fetchByAlbums(vararg values: JSONB): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.ALBUMS, *values)
+
+    /**
+     * Fetch records that have <code>path BETWEEN lowerInclusive AND
+     * upperInclusive</code>
+     */
+    fun fetchRangeOfPath(lowerInclusive: String?, upperInclusive: String?): List<com.example.be.db.generated.tables.pojos.Artist> = fetchRange(Artist.ARTIST.PATH, lowerInclusive, upperInclusive)
+
+    /**
+     * Fetch records that have <code>path IN (values)</code>
+     */
+    fun fetchByPath(vararg values: String): List<com.example.be.db.generated.tables.pojos.Artist> = fetch(Artist.ARTIST.PATH, *values)
 }

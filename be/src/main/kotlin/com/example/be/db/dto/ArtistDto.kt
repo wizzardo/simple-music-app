@@ -9,8 +9,9 @@ class ArtistDto(
     val id: Long,
     val created: LocalDateTime,
     val updated: LocalDateTime,
-    val name: String,
-    val albums: List<AlbumDto>,
+    var name: String,
+    var path: String,
+    var albums: List<AlbumDto>,
 )
 
 fun Artist.toArtistDto(objectMapper: ObjectMapper): ArtistDto = ArtistDto(
@@ -18,5 +19,6 @@ fun Artist.toArtistDto(objectMapper: ObjectMapper): ArtistDto = ArtistDto(
     created = created!!,
     updated = updated!!,
     name = name!!,
+    path = path!!,
     albums = objectMapper.readValue(albums!!.data(), object : TypeReference<ArrayList<AlbumDto>>() {})
 )

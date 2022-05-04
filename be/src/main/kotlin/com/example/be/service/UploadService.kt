@@ -1,11 +1,14 @@
 package com.example.be.service
 
 import com.example.be.db.dto.AlbumDto
+import com.example.be.db.dto.ArtistDto
 import com.example.be.db.generated.tables.pojos.Artist
 import com.example.be.db.repository.ArtistRepository
 import com.example.be.service.FFmpegService.MetaData
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.wizzardo.tools.image.ImageTools
+import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.security.MD5
 import org.jooq.JSONB
 import org.springframework.beans.factory.annotation.Value
@@ -25,7 +28,12 @@ class UploadService(
     private val ffmpegService: FFmpegService,
     private val artistRepository: ArtistRepository,
     private val randomIdService: RandomIdService,
+    private val artistService: ArtistService,
 ) {
+
+    companion object {
+        private const val UNKNOWN_ARTIST = "unknownArtist"
+    }
 
     fun upload(
         file: MultipartFile
@@ -51,16 +59,16 @@ class UploadService(
             val albumFolder = File(storagePath, albumPath)
             albumFolder.mkdirs()
             val target = File(albumFolder, fileName)
-            if (target.exists())
-                throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
+//            if (target.exists())
+//                throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
 
-            tempFile.copyTo(target)
+            tempFile.copyTo(target, true)
 
-            val artist = getOrCreateArtist(metaData)
+            val artist = getOrCreateArtist(metaData, artistPath)
 
             while (true) {
                 try {
-                    addSong(artist, metaData, albumPath, fileName, target)
+                    addSong(artist, metaData, album, fileName, target)
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
@@ -74,14 +82,14 @@ class UploadService(
     }
 
     @Transactional
-    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName:String, audio: File) {
+    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName: String, audio: File) {
         val albums: MutableList<AlbumDto> = objectMapper.readValue(artist.albums?.data(), object : TypeReference<ArrayList<AlbumDto>>() {})
         val album = albums.find { it.name == metaData.album }
             ?: createAlbum(metaData, albumPath).also { albums.add(it) }
-        album.songs += createSong(metaData, "$albumPath/$fileName")
+        album.songs += createSong(metaData, fileName)
 
         if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
-            val cover = albumPath + "/cover.jpg"
+            val cover = "cover.jpg"
             try {
                 val coverFile = File(storagePath, cover)
                 ffmpegService.extractCoverArt(audio, coverFile)
@@ -96,19 +104,20 @@ class UploadService(
     }
 
     @Transactional
-    fun getOrCreateArtist(metaData: MetaData): Artist {
+    fun getOrCreateArtist(metaData: MetaData, path: String): Artist {
         var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
         if (artist == null) {
-            artist = createArtistDto(metaData)
+            artist = createArtistDto(metaData, path)
             artistRepository.insert(artist)
         }
         return artist
     }
 
-    private fun createArtistDto(metaData: MetaData): Artist = Artist().apply {
+    private fun createArtistDto(metaData: MetaData, relativePath: String): Artist = Artist().apply {
         created = LocalDateTime.now()
         updated = LocalDateTime.now()
         name = metaData.artist ?: UNKNOWN_ARTIST
+        path = relativePath
         albums = JSONB.valueOf("[]")
     }
 
@@ -138,7 +147,13 @@ class UploadService(
         return (ms.toInt() + ((h * 60 + m) * 60 + s) * 1000)
     }
 
-    companion object {
-        private const val UNKNOWN_ARTIST = "unknownArtist"
+    fun uploadCoverArt(item: ArtistDto, album: AlbumDto, file: MultipartFile): ArtistDto {
+        val cover = album.path + "/cover.jpg"
+        val imageBytes = ImageTools.saveJPGtoBytes(ImageTools.read(file.bytes), 90)
+        val coverFile = File(storagePath, cover)
+        FileTools.bytes(coverFile, imageBytes)
+        album.coverPath = cover
+        album.coverHash = MD5.create().update(coverFile.readBytes()).toString()
+        return artistService.update(item.id, item, item)
     }
 }

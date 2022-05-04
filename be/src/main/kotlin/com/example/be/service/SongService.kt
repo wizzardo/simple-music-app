@@ -42,8 +42,9 @@ class SongService(
         val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: throw IllegalArgumentException("can't find album with name: $albumName")
         return album
     }
-    fun getAlbum(artist: ArtistDto, albumName: String): AlbumDto {
-        val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: throw IllegalArgumentException("can't find album with name: $albumName")
+
+    fun getAlbum(artist: ArtistDto, albumPath: String): AlbumDto {
+        val album: AlbumDto = artist.albums.find { album -> album.path == albumPath } ?: throw IllegalArgumentException("can't find album with name: $albumPath")
         return album
     }
 
@@ -57,5 +58,9 @@ class SongService(
 
     fun getAlbumCoverData(album: AlbumDto): ByteArray {
         return File(storagePath, album.coverPath!!).readBytes()
+    }
+
+    fun getAlbumCoverData(artistPath: String, albumPath: String): ByteArray {
+        return File(storagePath, "${artistPath}/${albumPath}/cover.jpg").readBytes()
     }
 }

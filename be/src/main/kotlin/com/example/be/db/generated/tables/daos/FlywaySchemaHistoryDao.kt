@@ -6,10 +6,15 @@ package com.example.be.db.generated.tables.daos
 
 import com.example.be.db.generated.tables.FlywaySchemaHistory
 import com.example.be.db.generated.tables.records.FlywaySchemaHistoryRecord
+
+import java.time.LocalDateTime
+
+import javax.annotation.processing.Generated
+
+import kotlin.collections.List
+
 import org.jooq.Configuration
 import org.jooq.impl.DAOImpl
-import java.time.LocalDateTime
-import javax.annotation.processing.Generated
 
 
 /**

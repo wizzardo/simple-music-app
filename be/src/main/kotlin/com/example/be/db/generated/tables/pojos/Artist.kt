@@ -4,9 +4,11 @@
 package com.example.be.db.generated.tables.pojos
 
 
-import org.jooq.JSONB
 import java.time.LocalDateTime
+
 import javax.annotation.processing.Generated
+
+import org.jooq.JSONB
 
 
 /**
@@ -25,7 +27,8 @@ data class Artist(
     var created: LocalDateTime? = null,
     var updated: LocalDateTime? = null,
     var name: String? = null,
-    var albums: JSONB? = null
+    var albums: JSONB? = null,
+    var path: String? = null
 ) {
 
 
@@ -37,6 +40,7 @@ data class Artist(
         sb.append(", ").append(updated)
         sb.append(", ").append(name)
         sb.append(", ").append(albums)
+        sb.append(", ").append(path)
 
         sb.append(")")
         return sb.toString()
