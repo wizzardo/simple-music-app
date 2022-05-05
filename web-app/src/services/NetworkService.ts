@@ -1,6 +1,7 @@
 import {fetch} from "./HttpClient";
 
-const baseurl = 'http://192.168.0.147:8080'
+// const baseurl = 'http://192.168.0.147:8080'
+const baseurl = 'http://localhost:8080'
 
 type Params = { [id: string]: any };
 type UrlMaker = (params: Params) => string;
@@ -62,7 +63,7 @@ const createPOST = <R, P extends Params>(template: string) => {
     return async (params?: P,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
 };
 
-const createDelete = <R>(template: string) => {
+const createDELETE = <R>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
     return async (params?: Params,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "DELETE"});
 };
@@ -83,12 +84,17 @@ const createMultipart = <R>(template: string) => {
 export default {
     baseurl,
     //generated endpoints start
-    getAlbumCover: createGET<number[]>('/artists/{artistName}/{albumName}/cover.jpg'),
+    getAlbumCover: createGET<number[]>('/artists/{artistPath}/{albumPath}/cover.jpg'),
     getArtist: createGET<ArtistDto>('/artists/{id}'),
     getArtists: createGET<Array<ArtistDto>>('/artists'),
     getSong: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}'),
     getSongConverted: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}'),
+    mergeAlbums: createPOST<ArtistDto, MergeAlbumsRequest>('/artists/{artistId}/{intoAlbumId}'),
+    moveAlbum: createPOST('/artists/{artistId}/{albumId}/{toArtistId}'),
     updateArtist: createPOST<ArtistDto, ArtistDto>('/artists/{id}'),
+    uploadCoverArt: createMultipart<ArtistDto>('/artists/{artistId}/{albumId}/cover'),
+    deleteArtist: createDELETE<ArtistDto>('/artists/{id}'),
+
 
 
     upload: createMultipart<Object>('/upload'),
@@ -96,32 +102,38 @@ export default {
 }
 
 //generated types start
+export interface MergeAlbumsRequest {
+	artistId: number,
+	intoAlbumId: string,
+	albums: Array<string>,
+}
+
 export interface ArtistDto {
-    id: number,
-    created: string,
-    updated: string,
-    name: string,
-    albums: Array<AlbumDto>,
+	id: number,
+	created: string,
+	updated: string,
+	name: string,
+	path: string,
+	albums: Array<AlbumDto>,
 }
 
 export interface AlbumDto {
-    id: string,
-    path: string,
-    date: string,
-    name: string,
-    songs: Array<AlbumDtoSong>,
-    coverPath: string | null,
-    coverHash: string | null,
+	id: string,
+	path: string,
+	date: string,
+	name: string,
+	songs: Array<AlbumDtoSong>,
+	coverPath: string | null,
+	coverHash: string | null,
 }
 
 export interface AlbumDtoSong {
-    id: string,
-    track: number,
-    title: string,
-    comment: string,
-    duration: number,
-    streams: Array<string>,
-    path: string,
+	id: string,
+	track: number,
+	title: string,
+	comment: string,
+	duration: number,
+	streams: Array<string>,
+	path: string,
 }
-
 //generated types end

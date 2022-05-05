@@ -8,6 +8,7 @@ import {UploadForm} from "./UploadForm";
 import NetworkService from "../services/NetworkService";
 import Route from "react-ui-basics/router/Route";
 import LibraryEditor from "./LibraryEditor";
+import Dialog from "./Dialog";
 
 const audioUrl = "https://cdn.pixabay.com/download/audio/2022/03/23/audio_07b2a04be3.mp3?filename=order-99518.mp3";
 const audioUrl2 = "https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1bdd.mp3?filename=the-cradle-of-your-soul-15700.mp3";
@@ -145,6 +146,7 @@ export default () => {
             <br/>
             <br/>
             <UploadForm/>
+            <Dialog/>
         </div>
     );
 }

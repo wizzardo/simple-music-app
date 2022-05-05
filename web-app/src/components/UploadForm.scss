@@ -2,4 +2,13 @@
   .files {
     width: 100%;
   }
+
+  .SpinningProgress {
+    width: 24px;
+    height: 24px;
+
+    .line {
+      stroke: #039be5;
+    }
+  }
 }

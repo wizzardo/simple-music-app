@@ -2,6 +2,7 @@ import {useCallback, useRef, useState} from "react";
 import DropFileInput from 'react-ui-basics/DropFileInput'
 import Button from 'react-ui-basics/Button'
 import MaterialIcon from 'react-ui-basics/MaterialIcon'
+import SpinningProgress from 'react-ui-basics/SpinningProgress'
 import {debounce, orNoop} from "react-ui-basics/Tools";
 import NetworkService from "../services/NetworkService";
 import './UploadForm.css'
@@ -18,6 +19,7 @@ interface SongFile {
     name: string;
     finished: boolean
     uploading: boolean
+    error: boolean
     file: File
 }
 
@@ -59,13 +61,13 @@ export const UploadForm = ({}) => {
             },
             onProgress: debounce((e) => {
                     update({
-                        progress: Number(100 * e.loaded / e.total).toFixed(1),
+                        progress: Math.floor(100 * e.loaded / e.total),
                         loaded: e.loaded,
                         total: e.total
                     })
 
                     if (e.total - e.loaded === 0)
-                        startUploadingNextFile()
+                        setTimeout(startUploadingNextFile, 100)
                 }
                 , 16)
         }).then(value => {
@@ -75,7 +77,7 @@ export const UploadForm = ({}) => {
             })
         }).catch(reason => {
             console.log('upload failed for ', next)
-            update({error: true})
+            update({error: true, uploading: false, finished: false})
         })
 
     }
@@ -86,7 +88,16 @@ export const UploadForm = ({}) => {
             {files.map(file => {
                 return <tr className={'file'} key={file.name}>
                     <td>{file.name}</td>
-                    <td>{file.progress}%</td>
+                    <td>
+                        {file.uploading && !file.finished && file.progress !== 100 && 'uploading'}
+                        {file.uploading && !file.finished && file.progress === 100 && 'processing'}
+                        {file.uploading && file.finished && 'ok'}
+                        {file.error && 'error'}
+                    </td>
+                    <td>
+                        {file.uploading && !file.finished && file.progress !== 100 && `${file.progress}%`}
+                        {file.uploading && !file.finished && file.progress === 100 && <SpinningProgress/>}
+                    </td>
                     <td></td>
                     <td>
                         <Button round={true} flat={true} raised={false} disabled={file.finished} onClick={e => {
