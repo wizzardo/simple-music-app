@@ -22,8 +22,7 @@ import java.time.LocalDateTime
 
 @Service
 class UploadService(
-    @Value("\${storage.path}")
-    private val storagePath: String,
+    private val storageService: StorageService,
     private val objectMapper: ObjectMapper,
     private val ffmpegService: FFmpegService,
     private val artistRepository: ArtistRepository,
@@ -54,21 +53,15 @@ class UploadService(
                 ?: throw IllegalArgumentException("title tag is empty!")
             val track = metaData.track
 
-            val albumPath = "$artistPath/$album"
             val fileName = "$track - $title.${tempFile.extension}"
-            val albumFolder = File(storagePath, albumPath)
-            albumFolder.mkdirs()
-            val target = File(albumFolder, fileName)
-//            if (target.exists())
-//                throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
-
-            tempFile.copyTo(target, true)
+            storageService.createFolder("$artistPath/$album")
+            storageService.put("$artistPath/$album/${fileName}", tempFile)
 
             val artist = getOrCreateArtist(metaData, artistPath)
 
             while (true) {
                 try {
-                    addSong(artist, metaData, album, fileName, target)
+                    addSong(artist, metaData, album, fileName, tempFile)
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
@@ -89,12 +82,11 @@ class UploadService(
         album.songs += createSong(metaData, fileName)
 
         if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
-            val cover = "cover.jpg"
             try {
-                val coverFile = File(storagePath, cover)
-                ffmpegService.extractCoverArt(audio, coverFile)
-                album.coverPath = cover
-                album.coverHash = MD5.create().update(coverFile.readBytes()).toString()
+                val imageBytes = ffmpegService.extractCoverArt(audio)
+                storageService.put("${artist.path}/${album.path}/cover.jpg", imageBytes)
+                album.coverPath = "cover.jpg"
+                album.coverHash = MD5.create().update(imageBytes).toString()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -148,12 +140,11 @@ class UploadService(
     }
 
     fun uploadCoverArt(item: ArtistDto, album: AlbumDto, file: MultipartFile): ArtistDto {
-        val cover = album.path + "/cover.jpg"
+        val cover = "cover.jpg"
         val imageBytes = ImageTools.saveJPGtoBytes(ImageTools.read(file.bytes), 90)
-        val coverFile = File(storagePath, cover)
-        FileTools.bytes(coverFile, imageBytes)
+        storageService.put("${item.path}/${album.path}/cover.jpg", imageBytes)
         album.coverPath = cover
-        album.coverHash = MD5.create().update(coverFile.readBytes()).toString()
+        album.coverHash = MD5.create().update(imageBytes).toString()
         return artistService.update(item.id, item, item)
     }
 }

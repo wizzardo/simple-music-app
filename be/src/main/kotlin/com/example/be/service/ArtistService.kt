@@ -16,9 +16,7 @@ class ArtistService(
     private val artistRepository: ArtistRepository,
     private val songService: SongService,
     private val objectMapper: ObjectMapper,
-
-    @Value("\${storage.path}")
-    private val storagePath: String,
+    private val storageService: StorageService,
 ) {
 
     fun getArtists(): List<ArtistDto> {
@@ -38,31 +36,13 @@ class ArtistService(
             val artistPath = to.name.replace("/", " - ")
             to.path = artistPath;
             to.albums.forEach { album ->
-                val albumPath = album.name.replace("/", " - ")
-                val artistAlbumPath = "$artistPath/$albumPath"
-                album.path = albumPath
-
-                val albumFolder = File(storagePath, artistAlbumPath)
-                albumFolder.mkdirs()
+                storageService.createFolder("${to.path}/${album.path}")
 
                 if (album.coverPath != null) {
-                    val coverNewPath = "$artistAlbumPath/cover.jpg"
-                    val coverNewFile = File(storagePath, coverNewPath)
-                    if (!coverNewFile.exists())
-                        if (!File(album.coverPath!!).renameTo(coverNewFile))
-                            throw IllegalStateException("file rename failed! ${album.coverPath} -> ${coverNewFile.canonicalPath}")
-
-                    album.coverPath = "cover.jpg"
+                    storageService.move("${from.path}/${album.path}/${album.coverPath}", "${to.path}/${album.path}/${album.coverPath}")
                 }
                 album.songs.forEach {
-                    val target = File(albumFolder, it.path)
-                    //todo: create a list of operations before executing them and check for conflicts
-                    if (target.exists())
-                        throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
-
-                    //todo: probably better to copy file and remove old one afterwards
-                    if (!File(storagePath, "${from.path}/${album.path}/${it.path}").renameTo(target))
-                        throw IllegalStateException("file rename failed! ${it.path} -> ${target.canonicalPath}")
+                    storageService.move("${from.path}/${album.path}/${it.path}", "${to.path}/${album.path}/${it.path}")
                 }
             }
         } else {
@@ -70,31 +50,15 @@ class ArtistService(
                 val fromAlbum = from.albums.find { it.id == album.id }!!
                 if (album.name != fromAlbum.name) {
                     val albumPath = album.name.replace("/", " - ")
-                    val artistAlbumPath = "${from.path}/$albumPath"
-                    val albumFolder = File(storagePath, artistAlbumPath)
-                    albumFolder.mkdirs()
-
                     album.path = albumPath
 
-                    if (fromAlbum.coverPath != null) {
-                        val coverNewPath = "$artistAlbumPath/cover.jpg"
-                        val coverNewFile = File(storagePath, coverNewPath)
-                        if (!coverNewFile.exists())
-                            if (!File("${from.path}/${fromAlbum.path}/${fromAlbum.coverPath}").renameTo(coverNewFile))
-                                throw IllegalStateException("file rename failed! ${album.coverPath} -> ${coverNewFile.canonicalPath}")
+                    storageService.createFolder("${to.path}/${album.path}")
 
-                        album.coverPath = "cover.jpg"
+                    if (fromAlbum.coverPath != null) {
+                        storageService.move("${from.path}/${fromAlbum.path}/${album.coverPath}", "${to.path}/${album.path}/${album.coverPath}")
                     }
                     album.songs.forEach {
-                        val target = File(albumFolder, it.path)
-
-                        //todo: create a list of operations before executing them and check for conflicts
-                        if (target.exists())
-                            throw IllegalArgumentException("file already exists! ${target.canonicalPath}")
-
-                        //todo: probably better to copy file and remove old one afterwards
-                        if (!File(storagePath, "${from.path}/${fromAlbum.path}/${it.path}").renameTo(target))
-                            throw IllegalStateException("file rename failed! ${it.path} -> ${target.canonicalPath}")
+                        storageService.move("${from.path}/${fromAlbum.path}/${it.path}", "${to.path}/${album.path}/${it.path}")
                     }
                 }
             }
@@ -111,27 +75,19 @@ class ArtistService(
         val album = item.albums.find { it.id == intoAlbumId } ?: throw IllegalArgumentException("Cannot find album with id ${intoAlbumId}")
         val songs: MutableList<AlbumDto.Song> = ArrayList(album.songs)
         album.songs = songs
-        val artistAlbumPath = "${item.path}/${album.path}"
-        val albumFolder = File(storagePath, artistAlbumPath)
 
         val mergedAlbums: MutableList<AlbumDto> = ArrayList(item.albums.size - albums.size)
         item.albums.forEach { fromAlbum ->
             if (fromAlbum.id in albums) {
                 fromAlbum.songs.forEach loop@{
                     songs.add(it)
-                    val toFile = File(albumFolder, it.path)
-                    val fromFile = File(storagePath, "${item.path}/${fromAlbum.path}/${it.path}")
+                    val toFile = "${item.path}/${album.path}/${it.path}"
+                    val fromFile = "${item.path}/${fromAlbum.path}/${it.path}"
 
-                    if (toFile.canonicalPath == fromFile.canonicalPath)
+                    if (toFile == fromFile)
                         return@loop
 
-                    //todo: create a list of operations before executing them and check for conflicts
-                    if (toFile.exists())
-                        throw IllegalArgumentException("file already exists! ${toFile.canonicalPath}")
-
-                    //todo: probably better to copy file and remove old one afterwards
-                    if (!fromFile.renameTo(toFile))
-                        throw IllegalStateException("file rename failed! ${it.path} -> ${toFile.canonicalPath}")
+                    storageService.move(fromFile, toFile)
                 }
             } else {
                 mergedAlbums.add(fromAlbum)
@@ -145,31 +101,19 @@ class ArtistService(
 
     @Transactional
     fun move(fromArtist: ArtistDto, toArtist: ArtistDto, album: AlbumDto) {
-        val albumPath = album.name.replace("/", " - ")
-        val artistAlbumPath = "${toArtist.path}/$albumPath"
-        album.path = albumPath
-
-        val albumFolder = File(storagePath, artistAlbumPath)
-        albumFolder.mkdirs()
+        storageService.createFolder("${toArtist.path}/${album.path}")
 
         if (album.coverPath != null) {
-            val coverNewPath = "$artistAlbumPath/cover.jpg"
-            val coverNewFile = File(storagePath, coverNewPath)
-            if (!coverNewFile.exists())
-                if (!File(album.coverPath!!).renameTo(coverNewFile))
-                    throw IllegalStateException("file rename failed! ${album.coverPath} -> ${coverNewFile.canonicalPath}")
-
-            album.coverPath = "cover.jpg"
+            storageService.move("${fromArtist.path}/${album.path}/${album.coverPath}", "${toArtist.path}/${album.path}/${album.coverPath}")
         }
-        album.songs.forEach {
-            val toFile = File(albumFolder, it.path)
-            //todo: create a list of operations before executing them and check for conflicts
-            if (toFile.exists())
-                throw IllegalArgumentException("file already exists! ${toFile.canonicalPath}")
+        album.songs.forEach loop@{
+            val toFile = "${toArtist.path}/${album.path}/${it.path}"
+            val fromFile = "${fromArtist.path}/${album.path}/${it.path}"
 
-            //todo: probably better to copy file and remove old one afterwards
-            if (!File(storagePath, "${fromArtist.path}/${album.path}/${it.path}").renameTo(toFile))
-                throw IllegalStateException("file rename failed! ${it.path} -> ${toFile.canonicalPath}")
+            if (toFile == fromFile)
+                return@loop
+
+            storageService.move(fromFile, toFile)
         }
 
         fromArtist.albums -= album
@@ -180,6 +124,6 @@ class ArtistService(
 
     fun delete(item: ArtistDto) {
         artistRepository.deleteById(item.id)
-        FileTools.deleteRecursive(File(storagePath, item.path))
+        storageService.delete(item.path)
     }
 }

@@ -2,6 +2,7 @@ package com.example.be.controller
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
+import com.example.be.db.dto.toArtistDto
 import com.example.be.service.ArtistService
 import com.example.be.service.FFmpegService
 import com.example.be.service.SongService
@@ -104,8 +105,10 @@ class ArtistController(
         @PathVariable albumName: String,
         @PathVariable trackNumber: Int,
     ): ResponseEntity<ByteArray> {
-        val song = songService.getSong(artistId, albumName, trackNumber)
-        val songData = songService.getSongData(song)
+        val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
+        val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
+        val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
+        val songData = songService.getSongData(artist, album, song)
         val type = AudioFormat.values().find { song.path.endsWith(it.name, true) }?.mimeType
         val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream") }
         return ResponseEntity(songData, headers, HttpStatus.OK)
@@ -127,8 +130,10 @@ class ArtistController(
         @PathVariable format: AudioFormat,
         @PathVariable bitrate: Int,
     ): ResponseEntity<ByteArray> {
-        val song = songService.getSong(artistId, albumName, trackNumber)
-        val data = ffmpegService.convert(song, format, bitrate)
+        val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
+        val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
+        val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
+        val data = ffmpegService.convert(artist, album, song, format, bitrate)
         val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(format.mimeType) }
         return ResponseEntity(data, headers, HttpStatus.OK)
     }

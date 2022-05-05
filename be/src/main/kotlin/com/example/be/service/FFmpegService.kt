@@ -2,6 +2,7 @@ package com.example.be.service
 
 import com.example.be.controller.ArtistController
 import com.example.be.db.dto.AlbumDto
+import com.example.be.db.dto.ArtistDto
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.misc.Stopwatch
 import org.springframework.stereotype.Service
@@ -62,11 +63,11 @@ class FFmpegService(
         )
     }
 
-    fun convert(song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
+    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == ArtistController.AudioFormat.FLAC)
             if (audio.contains("flac"))
-                return songService.getSongData(song)
+                return songService.getSongData(artist, album, song)
             else
                 throw IllegalArgumentException("Upconvert is not preferred");
 
@@ -79,17 +80,17 @@ class FFmpegService(
 
         if (audio.contains(format.name.lowercase())) {
             if (b <= bitrate)
-                return songService.getSongData(song)
+                return songService.getSongData(artist, album, song)
         }
 
-        return doConvert(song, format, Math.min(bitrate, b))
+        return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
+    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
         val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
         val tempOutFile = File.createTempFile("to_", "." + format.name.lowercase())
         try {
-            songService.copySongData(song, tempFile)
+            songService.copySongData(artist, album, song, tempFile)
 
             val stopwatch = Stopwatch("converting to " + format)
             val command =
@@ -155,6 +156,39 @@ class FFmpegService(
 
             val image = ImageTools.read(tempFile)
             ImageTools.saveJPG(image, to, 90)
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    fun extractCoverArt(audio: File): ByteArray {
+        val tempFile = File.createTempFile("cover", ".png")
+        try {
+            val command =
+                arrayOf(
+                    "./ffmpeg",
+                    "-nostdin",
+                    "-y",
+                    "-hide_banner",
+                    "-i",
+                    audio.canonicalPath,
+                    "-an",
+                    tempFile.canonicalPath
+                )
+            println("executing command: ${Arrays.toString(command)}")
+            val process = Runtime.getRuntime().exec(command)
+            val exited = process.waitFor(30, TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroy()
+            }
+            println("output:")
+            println(String(process.inputStream.readAllBytes()))
+            println("error:")
+            val message = String(process.errorStream.readAllBytes())
+            println(message)
+
+            val image = ImageTools.read(tempFile)
+            return ImageTools.saveJPGtoBytes(image, 90)
         } finally {
             tempFile.delete()
         }
