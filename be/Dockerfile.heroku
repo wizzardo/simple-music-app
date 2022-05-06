@@ -1,0 +1,15 @@
+FROM bellsoft/liberica-openjdk-alpine:11
+
+
+WORKDIR /opt/webapp
+
+RUN wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+    && tar xf ffmpeg-release-amd64-static.tar.xz \
+    && mv ffmpeg-5.0.1-amd64-static/ffmpeg . \
+    && mv ffmpeg-5.0.1-amd64-static/ffprobe . \
+    && rm -rf ffmpeg-5.0.1-amd64-static \
+    && rm ffmpeg-release-amd64-static.tar.xz
+
+COPY ./build/libs/be-0.0.1-SNAPSHOT.jar .
+
+CMD ["java", "-Dspring.profiles.active=docker", "-jar", "be-0.0.1-SNAPSHOT.jar"]
