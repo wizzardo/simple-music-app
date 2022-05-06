@@ -37,5 +37,19 @@ class BeApplication {
 }
 
 fun main(args: Array<String>) {
+    val dbUrl = System.getenv("DATABASE_URL")
+    if (dbUrl != null) {
+        val credentials = dbUrl.substringAfter("://").substringBefore("@")
+        val url = "jdbc:postgresql://" + dbUrl.substringAfter("@")
+        System.setProperty("spring.datasource.url", url)
+        System.setProperty("spring.datasource.username", credentials.substringBefore(":"))
+        System.setProperty("spring.datasource.password", credentials.substringAfter(":"))
+    }
+
+    val port = System.getenv("PORT")
+    if (port != null) {
+        System.setProperty("server.port", port)
+    }
+
     runApplication<BeApplication>(*args)
 }
