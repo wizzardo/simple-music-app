@@ -1,5 +1,4 @@
 import React from 'react';
-import './App.css'
 import {classNames} from "react-ui-basics/Tools";
 import Route from "react-ui-basics/router/Route";
 import LibraryEditor from "./LibraryEditor";
@@ -27,8 +26,22 @@ export default () => {
     `;
 
     return (
-        <div className={classNames("App", coverBackground)}>
-            <div className="content">
+        <div className={classNames("App", css`
+          background: white;
+          max-width: 900px;
+          margin-left: auto;
+          margin-right: auto;
+        `, coverBackground)}>
+            <div className={css`
+              padding: 20px;
+              padding-top: 40px;
+              box-sizing: border-box;
+              min-height: 100vh;
+              padding-bottom: 125px;
+
+              background: rgba(255, 255, 255, 0.45);
+              backdrop-filter: blur(40px);
+            `}>
                 <Route path={"/edit/:artistId?/:album?"}>
                     <LibraryEditor album={null} artistId={null}/>
                 </Route>

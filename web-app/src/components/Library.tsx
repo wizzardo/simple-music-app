@@ -136,32 +136,67 @@ const ListSongs = ({artistId, albumName}) => {
     if (!album)
         return <></>
 
+
+    let isMobile = window.innerWidth <= 800;
+
     const songs = [...album.songs]
     songs.sort(Comparators.of('track', SORT_ASC, songs))
 
     const refSeparatorSongs = useRef<HTMLSpanElement>()
 
-    return <FlexRow className={css`margin: 20px;
+    return <FlexRow className={css`
+      margin: ${isMobile ? 0 : '20px'};
+      flex-flow: row ${isMobile ? 'wrap' : 'nowrap'};
       align-items: flex-start;`}>
-        {album.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath} alt={album.name}/>}
+
+        {album.coverPath && <Cover
+            className={classNames(isMobile && css`
+              width: 100%;
+              max-height: 300px;
+              max-width: 300px;
+              margin-left: auto;
+              margin-right: auto;
+              margin-bottom: 20px;
+            `)}
+            src={NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath} alt={album.name}
+        />}
         {!album.coverPath && <MaterialIcon className={css`
           font-size: 50px;
         `} icon={'album'}/>}
 
-        <span className={css`width: 25px;`}/>
+        {!isMobile && <span className={css`width: 25px;`}/>}
 
         <FlexColumn className={css`
           flex-basis: 1px;
           flex-grow: 1;
         `}>
-            {album && artist && album.name}
+            <FlexRow className={css`justify-content: space-between;`}>
+                <FlexColumn>
+                    {album && artist && album.name}
 
-            <span className={css`height: 5px;`}/>
+                    <span className={css`height: 5px;`}/>
 
-            <span className={css`
-              font-size: 14px;`}>
-                by {artist.name}
-            </span>
+                    <span className={css`font-size: 14px;`}>
+                    by {artist.name}
+                </span>
+                </FlexColumn>
+
+                <Button className={classNames('red', css`
+                  padding: 10px !important;
+                  height: unset;
+
+                  .MaterialIcon {
+                    font-size: 30px;
+                    color: white;
+                  }
+                `)} flat round onClick={e => PlayerStore.play(songs.map(it => ({
+                    artistId: artist.id,
+                    albumId: album.id,
+                    songId: it.id
+                })))}>
+                    <MaterialIcon icon={'play_arrow'}/>
+                </Button>
+            </FlexRow>
 
             <span className={css`height: 10px;`}/>
 
@@ -174,35 +209,23 @@ const ListSongs = ({artistId, albumName}) => {
             <span className={css`height: 25px;`} ref={refSeparatorSongs}/>
 
             <Scrollable scrollBarMode={SCROLLBAR_MODE_VISIBLE} className={css`
-              max-height: ${refSeparatorSongs.current ? (window.innerHeight - 187 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px'};            
-`}>
+              max-height: ${refSeparatorSongs.current ? (window.innerHeight - 145 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px'};
+            `}>
                 {songs.map(it => <Song key={it.id} artist={artist} album={album} song={it}/>)}
             </Scrollable>
         </FlexColumn>
 
-        <Button className={classNames('red', css`
-          padding: 10px !important;
-          height: unset;
 
-          .MaterialIcon {
-            font-size: 30px;
-            color: white;
-          }
-        `)} flat round onClick={e => PlayerStore.play(songs.map(it => ({
-            artistId: artist.id,
-            albumId: album.id,
-            songId: it.id
-        })))}>
-            <MaterialIcon icon={'play_arrow'}/>
-        </Button>
     </FlexRow>
 }
 
 const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song: AlbumDtoSong }) => {
     const {position, queue} = useStore(PlayerStore.store)
     const isCurrentSong = queue[position]?.songId === song.id
-    return <FlexRow className={css`padding: 2px;`}>
-        <span className={css`width: 50px;`}>{song.track}.</span>
+    return <FlexRow className={css`padding: 5px;`}>
+        <span className={css`width: 20px;
+          text-align: right;
+          margin-right: 10px;`}>{song.track}.</span>
         <span className={css`
           color: ${isCurrentSong ? 'red' : 'black'};
         `}>{song.title}</span>

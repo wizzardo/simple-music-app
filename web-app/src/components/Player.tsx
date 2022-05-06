@@ -154,7 +154,7 @@ const Player = ({}) => {
           padding: 20px;
         `}>
             <div className={css`
-              width: 600px;
+              max-width: 600px;
               margin-left: auto;
               margin-right: auto;
             `}>
