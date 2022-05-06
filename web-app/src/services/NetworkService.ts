@@ -1,7 +1,7 @@
 import {fetch} from "./HttpClient";
 
-// const baseurl = 'http://192.168.0.147:8080'
-const baseurl = 'http://localhost:8080'
+const origin = window.location.origin;
+const baseurl = origin.indexOf('localhost') !== -1 ? 'http://localhost:8080' : origin;
 
 type Params = { [id: string]: any };
 type UrlMaker = (params: Params) => string;
@@ -96,44 +96,44 @@ export default {
     deleteArtist: createDELETE<ArtistDto>('/artists/{id}'),
 
 
-
     upload: createMultipart<Object>('/upload'),
 //generated endpoints end
 }
 
 //generated types start
 export interface MergeAlbumsRequest {
-	artistId: number,
-	intoAlbumId: string,
-	albums: Array<string>,
+    artistId: number,
+    intoAlbumId: string,
+    albums: Array<string>,
 }
 
 export interface ArtistDto {
-	id: number,
-	created: string,
-	updated: string,
-	name: string,
-	path: string,
-	albums: Array<AlbumDto>,
+    id: number,
+    created: string,
+    updated: string,
+    name: string,
+    path: string,
+    albums: Array<AlbumDto>,
 }
 
 export interface AlbumDto {
-	id: string,
-	path: string,
-	date: string,
-	name: string,
-	songs: Array<AlbumDtoSong>,
-	coverPath: string | null,
-	coverHash: string | null,
+    id: string,
+    path: string,
+    date: string,
+    name: string,
+    songs: Array<AlbumDtoSong>,
+    coverPath: string | null,
+    coverHash: string | null,
 }
 
 export interface AlbumDtoSong {
-	id: string,
-	track: number,
-	title: string,
-	comment: string,
-	duration: number,
-	streams: Array<string>,
-	path: string,
+    id: string,
+    track: number,
+    title: string,
+    comment: string,
+    duration: number,
+    streams: Array<string>,
+    path: string,
 }
+
 //generated types end

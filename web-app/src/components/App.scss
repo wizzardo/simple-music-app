@@ -1,8 +1,17 @@
 .App {
-  padding: 20px;
-  padding-top: 40px;
-  box-sizing: border-box;
+  background: white;
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
+
+  > .content {
+    padding: 20px;
+    padding-top: 40px;
+    box-sizing: border-box;
+    min-height: 100vh;
+    padding-bottom: 157px;
+
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(40px);
+  }
 }

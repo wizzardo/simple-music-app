@@ -40,7 +40,9 @@ const LibraryEditor = ({artistId, album}) => {
 
     let albumName = album && decodeURI(album);
     let albumDto: AlbumDto = artistsStore.map[artistId]?.albums?.find(it => it.name === albumName);
-    return <div>
+    return <div className={css`
+      background: white;
+    `}>
         <Link href={'/edit/'}>Artists:</Link>
         &nbsp;&nbsp;
         {artistId && artist && <Link href={'/edit/' + artistId + '/'}>{artist.name}:</Link>}
@@ -73,7 +75,7 @@ const ListArtists = ({artists}) => {
                       if (e.target?.closest('.Button'))
                           return
 
-                      pushLocation(it['id'] + '/')
+                      pushLocation('/edit/' + it['id'] + '/')
                   }}
                   rowClassName={css`
                     &:hover {
@@ -266,71 +268,72 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
 
         <span className={css`height: 25px;`}/>
 
-        <Table sortBy={'name'}
-               data={artist?.albums || []}
-               onRowClick={(it, e) => {
-                   // @ts-ignore
-                   if (e.target?.closest('.Checkbox'))
-                       return
+        <Table<AlbumDto>
+            sortBy={'name'}
+            data={artist?.albums || []}
+            onRowClick={(it, e) => {
+                // @ts-ignore
+                if (e.target?.closest('.Checkbox'))
+                    return
 
-                   pushLocation(it['name'] + '/')
-               }}
-               rowClassName={css`
-                 &:hover {
-                   cursor: pointer;
-                 }
-               `}
-               columns={[
-                   {
-                       field: 'coverPath',
-                       sortable: false,
-                       formatter: ((it, item) => {
-                           if (it)
-                               return <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + item.path + '/' + it} alt={'cover'}/>;
-                           else
-                               return <MaterialIcon className={css`
-                                 font-size: 50px;
-                               `} icon={'album'}/>;
-                       })
-                   },
-                   {
-                       field: 'name',
-                       header: 'Name',
-                       sortable: true,
-                   },
-                   {
-                       field: 'date',
-                       header: 'Date',
-                       sortable: true,
-                   },
-                   {
-                       field: 'songs',
-                       header: 'Tracks',
-                       sortable: false,
-                       formatter: ((it) => it.length)
-                   },
-                   {
-                       field: 'songs',
-                       header: 'Duration',
-                       sortable: false,
-                       formatter: ((it) => formatDuration(it.reduce((total, it) => {
-                           total += it.duration;
-                           return total
-                       }, 0) || 0))
-                   },
-                   {
-                       field: 'id',
-                       header: '',
-                       sortable: false,
-                       formatter: ((id) => <Checkbox value={selected.includes(id)} onChange={e => {
-                           if (e.target.checked) {
-                               setSelected([...selected, id])
-                           } else {
-                               setSelected(selected.filter(it => it !== id))
-                           }
-                       }}/>)
-                   },
-               ]}/>
+                pushLocation('/edit/' + artist.id + '/' + it.name + '/')
+            }}
+            rowClassName={css`
+              &:hover {
+                cursor: pointer;
+              }
+            `}
+            columns={[
+                {
+                    field: 'coverPath',
+                    sortable: false,
+                    formatter: ((it, item) => {
+                        if (it)
+                            return <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + item.path + '/' + it} alt={'cover'}/>;
+                        else
+                            return <MaterialIcon className={css`
+                              font-size: 50px;
+                            `} icon={'album'}/>;
+                    })
+                },
+                {
+                    field: 'name',
+                    header: 'Name',
+                    sortable: true,
+                },
+                {
+                    field: 'date',
+                    header: 'Date',
+                    sortable: true,
+                },
+                {
+                    field: 'songs',
+                    header: 'Tracks',
+                    sortable: false,
+                    formatter: ((it) => it.length)
+                },
+                {
+                    field: 'songs',
+                    header: 'Duration',
+                    sortable: false,
+                    formatter: ((it) => formatDuration(it.reduce((total, it) => {
+                        total += it.duration;
+                        return total
+                    }, 0) || 0))
+                },
+                {
+                    field: 'id',
+                    header: '',
+                    sortable: false,
+                    formatter: ((id) => <Checkbox value={selected.includes(id)} onChange={e => {
+                        if (e.target.checked) {
+                            setSelected([...selected, id])
+                        } else {
+                            setSelected(selected.filter(it => it !== id))
+                        }
+                    }}/>)
+                },
+            ]}/>
 
         <span className={css`height: 25px;`}/>
 
