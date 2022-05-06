@@ -9,7 +9,7 @@ import Checkbox from "react-ui-basics/Checkbox";
 import Link from "react-ui-basics/router/Link";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
 import NetworkService, {AlbumDto, ArtistDto} from "../services/NetworkService";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import Table from "react-ui-basics/Table";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import dayjs from "dayjs";
@@ -18,6 +18,9 @@ import * as ArtistsStore from "../stores/ArtistsStore";
 import {classNames, Comparators} from "react-ui-basics/Tools";
 import * as DialogStore from "../stores/DialogStore";
 import SpinningProgress from "react-ui-basics/SpinningProgress";
+import {UploadForm} from "./UploadForm";
+import {formatDuration, getAlbumDuration} from "../utils/Helpers";
+import {FlexColumn, FlexRow, smallIconButtonCss} from "./SharedComponents";
 
 export const DateFormatter = (date, item, format = 'YY-MM-DD hh:mm:ss') => date && dayjs(date).format(format);
 
@@ -55,6 +58,8 @@ const LibraryEditor = ({artistId, album}) => {
         <Route path={"/edit/:artistId/:albumName"}>
             <ListSongs album={albumDto} artist={artist}/>
         </Route>
+
+        <UploadForm/>
     </div>
 }
 
@@ -122,25 +127,6 @@ const Cover = styled("img")`
   max-height: 150px;
 `;
 
-const FlexRow = styled('div')`
-  display: flex;
-  flex-flow: row nowrap;
-  align-items: center;
-`
-const FlexColumn = styled('div')`
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: center;
-`
-const smallIconButtonCss = css`
-  color: darkgray;
-  min-width: 24px !important;
-  min-height: 24px;
-
-  .material-icons {
-    font-size: 16px;
-  }
-`;
 
 const SmallSpinner = () => <span className={css`
   .SpinningProgress {
@@ -355,19 +341,6 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
             </Button>
         </FlexRow>
     </FlexColumn>
-}
-
-const formatDuration = it => {
-    let minutes = Math.floor(Number(it / 1000 / 60));
-    let seconds = Math.floor((it / 1000) % 60);
-    return <>{minutes + ':' + (seconds < 10 ? '0' + seconds : seconds)}</>;
-}
-
-function getAlbumDuration(album: AlbumDto) {
-    return album?.songs?.reduce((total, it) => {
-        total += it.duration;
-        return total
-    }, 0) || 0;
 }
 
 const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
