@@ -4,15 +4,19 @@ import Store, {useStore} from "react-ui-basics/store/Store";
 const SONGS_STORE_NAME = "songs";
 const SONG_DATA_STORE_NAME = "song_data";
 
-interface Song {
+export interface Song {
     url: string
+    name: string,
     artist: string,
     album: string,
+    type: string,
     size: number,
     dataId: number,
+    timesPlayed: number,
+    dateAdded: number,
 }
 
-interface SongData {
+export interface SongData {
     data: ArrayBuffer,
 }
 
@@ -22,6 +26,13 @@ export class SongLocalCacheDB extends DB {
             .objectStore<Song, number>(SONGS_STORE_NAME)
             .index<string>('url')
             .get(url)
+            .asPromise()
+    }
+
+    async songs() {
+        return this.trRO(SONGS_STORE_NAME)
+            .objectStore<Song, number>(SONGS_STORE_NAME)
+            .getAll()
             .asPromise()
     }
 

@@ -289,7 +289,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                     sortable: false,
                     formatter: ((it, item) => {
                         if (it)
-                            return <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + item.path + '/' + it} alt={'cover'}/>;
+                            return <Cover src={NetworkService.baseurl + '/artists/' + artist?.path + '/' + item.path + '/' + it} alt={'cover'}/>;
                         else
                             return <MaterialIcon className={css`
                               font-size: 50px;

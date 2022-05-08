@@ -57,14 +57,18 @@ class UploadService(
             storageService.createFolder("$artistPath/$album")
             storageService.put("$artistPath/$album/${fileName}", tempFile)
 
-            val artist = getOrCreateArtist(metaData, artistPath)
-
+            var tries = 0;
             while (true) {
                 try {
-                    addSong(artist, metaData, album, fileName, tempFile)
+                    tries++;
+                    val artist = getOrCreateArtist(metaData, artistPath)
+                    if (!addSong(artist, metaData, album, fileName, tempFile))
+                        continue
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
+                    if (tries >= 5)
+                        throw IllegalStateException(e)
                 }
             }
         } finally {
@@ -75,11 +79,12 @@ class UploadService(
     }
 
     @Transactional
-    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName: String, audio: File) {
+    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName: String, audio: File): Boolean {
         val albums: MutableList<AlbumDto> = objectMapper.readValue(artist.albums?.data(), object : TypeReference<ArrayList<AlbumDto>>() {})
         val album = albums.find { it.name == metaData.album }
             ?: createAlbum(metaData, albumPath).also { albums.add(it) }
-        album.songs += createSong(metaData, fileName)
+        val song = createSong(metaData, fileName)
+        album.songs += song
 
         if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
             try {
@@ -92,7 +97,14 @@ class UploadService(
             }
         }
 
-        artistRepository.updateAlbums(artist, albums, objectMapper)
+        val updated = artistRepository.updateAlbums(artist, albums, objectMapper)
+        if (updated == 1) {
+            println("added song ${song.track} ${song.title} to ${album.name}:")
+            album.songs.forEach { println("  ${it.track} ${it.title}") }
+        }else{
+            println("retrying update")
+        }
+        return updated == 1
     }
 
     @Transactional

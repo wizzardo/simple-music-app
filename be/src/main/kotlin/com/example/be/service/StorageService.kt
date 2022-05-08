@@ -52,7 +52,7 @@ class StorageService(
 
     override fun list(folder: FileInfo?): MutableList<FileInfo> = storage.list(folder)
 
-    override fun getInfo(path: String): FileInfo = storage.getInfo(withSubPath(path))
+    override fun getInfo(path: String): FileInfo? = storage.getInfo(withSubPath(path))
 
     override fun getData(file: FileInfo, from: Long, to: Long): ByteArray = storage.getData(file, from, to)
 

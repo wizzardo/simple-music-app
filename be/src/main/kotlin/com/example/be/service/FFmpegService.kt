@@ -1,6 +1,5 @@
 package com.example.be.service
 
-import com.example.be.controller.ArtistController
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
 import com.wizzardo.tools.image.ImageTools
@@ -21,15 +20,15 @@ class FFmpegService(
 
     fun getMetaData(f: File): MetaData {
         val command = "./ffprobe -hide_banner -i \"" + f.canonicalPath + "\""
-        println("executing command: $command")
+//        println("executing command: $command")
         val process = Runtime.getRuntime().exec(arrayOf("./ffprobe", "-hide_banner", "-i", f.canonicalPath))
         process.waitFor()
-        println("output:")
-        println(String(process.inputStream.readAllBytes()))
+//        println("output:")
+//        println(String(process.inputStream.readAllBytes()))
 
-        println("error:")
+//        println("error:")
         var message = String(process.errorStream.readAllBytes())
-        println(message)
+//        println(message)
 
         val start = message.indexOf("Metadata")
         if (start == -1)
@@ -63,9 +62,9 @@ class FFmpegService(
         )
     }
 
-    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
+    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): ByteArray {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
-        if (format == ArtistController.AudioFormat.FLAC)
+        if (format == AudioFormat.FLAC)
             if (audio.contains("flac"))
                 return songService.getSongData(artist, album, song)
             else
@@ -86,9 +85,9 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: ArtistController.AudioFormat, bitrate: Int): ByteArray {
+    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): ByteArray {
         val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
-        val tempOutFile = File.createTempFile("to_", "." + format.name.lowercase())
+        val tempOutFile = File.createTempFile("to_", "." + format.extension)
         try {
             songService.copySongData(artist, album, song, tempFile)
 
@@ -103,23 +102,25 @@ class FFmpegService(
                     tempFile.canonicalPath,
                     "-map",
                     "a",
+                    "-c:a",
+                    format.codec,
                     "-ab",
                     bitrate.toString() + "k",
                     tempOutFile.canonicalPath
                 )
-            println("executing command: ${Arrays.toString(command)}")
+//            println("executing command: ${Arrays.toString(command)}")
             val process = Runtime.getRuntime().exec(command)
             val exited = process.waitFor(30, TimeUnit.SECONDS)
             if (!exited) {
                 process.destroy()
             }
 
-            println(stopwatch)
-            println("output:")
-            println(String(process.inputStream.readAllBytes()))
-            println("error:")
-            val message = String(process.errorStream.readAllBytes())
-            println(message)
+//            println(stopwatch)
+//            println("output:")
+//            println(String(process.inputStream.readAllBytes()))
+//            println("error:")
+//            val message = String(process.errorStream.readAllBytes())
+//            println(message)
 
             return Files.readAllBytes(tempOutFile.toPath())
         } finally {
@@ -175,17 +176,17 @@ class FFmpegService(
                     "-an",
                     tempFile.canonicalPath
                 )
-            println("executing command: ${Arrays.toString(command)}")
+//            println("executing command: ${Arrays.toString(command)}")
             val process = Runtime.getRuntime().exec(command)
             val exited = process.waitFor(30, TimeUnit.SECONDS)
             if (!exited) {
                 process.destroy()
             }
-            println("output:")
-            println(String(process.inputStream.readAllBytes()))
-            println("error:")
-            val message = String(process.errorStream.readAllBytes())
-            println(message)
+//            println("output:")
+//            println(String(process.inputStream.readAllBytes()))
+//            println("error:")
+//            val message = String(process.errorStream.readAllBytes())
+//            println(message)
 
             val image = ImageTools.read(tempFile)
             return ImageTools.saveJPGtoBytes(image, 90)
@@ -204,4 +205,13 @@ class FFmpegService(
         val duration: String? = null,
         val streams: List<String> = emptyList(),
     )
+
+    enum class AudioFormat(val mimeType: String, val extension: String, val codec: String) {
+        MP3("audio/mpeg", "mp3", "libmp3lame"),
+        AAC("audio/aac", "aac", "libfdk_aac"),
+        OGG("audio/ogg", "ogg", "libvorbis"),
+        OPUS("audio/opus", "opus", "libopus"),
+        FLAC("audio/x-flac", "flac", "flac");
+
+    }
 }

@@ -2,7 +2,6 @@ package com.example.be.controller
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
-import com.example.be.db.dto.toArtistDto
 import com.example.be.service.ArtistService
 import com.example.be.service.FFmpegService
 import com.example.be.service.SongService
@@ -99,7 +98,7 @@ class ArtistController(
         return ResponseEntity.ok(updated)
     }
 
-    @GetMapping("/artists/{artistId}/{albumName}/{trackNumber}")
+    @GetMapping(value = ["/artists/{artistId}/{albumName}/{trackNumber}"], produces = ["*/*"])
     fun getSong(
         @PathVariable artistId: Long,
         @PathVariable albumName: String,
@@ -109,25 +108,17 @@ class ArtistController(
         val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
         val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
         val songData = songService.getSongData(artist, album, song)
-        val type = AudioFormat.values().find { song.path.endsWith(it.name, true) }?.mimeType
+        val type = FFmpegService.AudioFormat.values().find { song.path.endsWith(it.name, true) }?.mimeType
         val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream") }
         return ResponseEntity(songData, headers, HttpStatus.OK)
     }
 
-    enum class AudioFormat(val mimeType: String) {
-        MP3("audio/mpeg"),
-        AAC("audio/aac"),
-        OGG("audio/ogg"),
-        OPUS("audio/opus"),
-        FLAC("audio/x-flac");
-    }
-
-    @GetMapping("/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}")
+    @GetMapping(value = ["/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}"], produces = ["*/*"])
     fun getSongConverted(
         @PathVariable artistId: Long,
         @PathVariable albumName: String,
         @PathVariable trackNumber: Int,
-        @PathVariable format: AudioFormat,
+        @PathVariable format: FFmpegService.AudioFormat,
         @PathVariable bitrate: Int,
     ): ResponseEntity<ByteArray> {
         val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
@@ -138,7 +129,7 @@ class ArtistController(
         return ResponseEntity(data, headers, HttpStatus.OK)
     }
 
-    @GetMapping("/artists/{artistPath}/{albumPath}/cover.jpg")
+    @GetMapping(value = ["/artists/{artistPath}/{albumPath}/cover.jpg"], produces = ["image/jpeg"])
     fun getAlbumCover(
         @PathVariable artistPath: String,
         @PathVariable albumPath: String,

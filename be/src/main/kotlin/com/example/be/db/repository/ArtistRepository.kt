@@ -31,8 +31,10 @@ open class ArtistRepository(configuration: Configuration) : ArtistDao(configurat
     fun updateAlbums(artist: Artist, albums: List<AlbumDto>, objectMapper: ObjectMapper): Int {
 //        println("albums: $albums")
         return ctx().update(ARTIST)
+            .set(ARTIST.UPDATED, LocalDateTime.now())
             .set(ARTIST.ALBUMS, JSONB.valueOf(objectMapper.writeValueAsString(albums)))
             .where(ARTIST.ID.eq(artist.id))
+            .and(ARTIST.UPDATED.eq(artist.updated))
             .execute()
     }
 

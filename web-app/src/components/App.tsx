@@ -10,6 +10,10 @@ import * as ArtistsStore from "../stores/ArtistsStore";
 import * as PlayerStore from "../stores/PlayerStore";
 import {css} from "goober";
 import NetworkService from "../services/NetworkService";
+import CacheStats from "./CacheStats";
+import Settings from "./Settings";
+import MoreMenu from "./MoreMenu";
+import DownloadQueue from "./DownloadQueue";
 
 export default () => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -19,15 +23,15 @@ export default () => {
     const artist = artistsStore.map[queuedSong?.artistId];
     const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
     const coverBackground = playing && album && css`
-      background: url('${NetworkService.baseurl}/artists/${artist.path}/${album.path}/${album.coverPath}');
-      background-size: cover;
-      background-position-x: center;
-      background-position-y: center;
+      background-image: url('${NetworkService.baseurl}/artists/${artist.path}/${album.path}/${album.coverPath}');
     `;
 
     return (
         <div className={classNames("App", css`
           background: white;
+          background-size: cover;
+          background-position-x: center;
+          background-position-y: center;
           max-width: 900px;
           margin-left: auto;
           margin-right: auto;
@@ -42,18 +46,31 @@ export default () => {
               background: rgba(255, 255, 255, 0.45);
               backdrop-filter: blur(40px);
             `}>
+                <MoreMenu className={css`
+                  position: absolute;
+                  right: 10px;
+                  top: 10px;`}
+                />
+
                 <Route path={"/edit/:artistId?/:album?"}>
                     <LibraryEditor album={null} artistId={null}/>
                 </Route>
 
-                <Route path={"/!edit/*"}>
-                    <Route path={"/:artistId?/:album?"}>
-                        <Library artistId={null} album={null}/>
-                    </Route>
+                <Route path={"/cacheStats"}>
+                    <CacheStats/>
+                </Route>
+
+                <Route path={"/settings"}>
+                    <Settings/>
+                </Route>
+
+                <Route path={"/:artistId(^[0-9]+$)?/:album?"}>
+                    <Library artistId={null} album={null}/>
                     <Player/>
                 </Route>
 
                 <Dialog/>
+                <DownloadQueue/>
             </div>
         </div>
     );

@@ -3,7 +3,7 @@ import * as ArtistsStore from "../stores/ArtistsStore";
 import {css, styled} from "goober";
 import NetworkService, {AlbumDto, AlbumDtoSong, ArtistDto} from "../services/NetworkService";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
-import React, {useEffect, useRef} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {formatDuration, getAlbumDuration} from "../utils/Helpers";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
 import Route from "react-ui-basics/router/Route";
@@ -13,6 +13,10 @@ import {SORT_ASC} from "react-ui-basics/Table";
 import * as PlayerStore from "../stores/PlayerStore";
 import Button from "react-ui-basics/Button";
 import Scrollable, {SCROLLBAR_MODE_VISIBLE} from "react-ui-basics/Scrollable";
+import {Song as SongDTO, useLocalCache} from "../services/LocalCacheService";
+import * as SettingsStore from "../stores/SettingsStore";
+import * as DownloadQueueStore from "../stores/DownloadQueueStore";
+import {DownloadTask} from "../stores/DownloadQueueStore";
 
 
 const Cover = styled("img")`
@@ -123,6 +127,10 @@ const ListAlbums = ({artistId}) => {
 
 
 const ListSongs = ({artistId, albumName}) => {
+    const [notReadySongs, setNotReadySongs] = useState([])
+    const {format, bitrate} = useStore(SettingsStore.store)
+    const cache = useLocalCache()
+
     const artistsStore = useStore(ArtistsStore.store)
     const artist = artistsStore.map[artistId];
 
@@ -133,16 +141,44 @@ const ListSongs = ({artistId, albumName}) => {
         artistId && NetworkService.getArtist({id: artistId}).then(ArtistsStore.set)
     }, [artistId])
 
+    const refSeparatorSongs = useRef<HTMLSpanElement>()
+    const [downloadClicked, setDownloadClicked] = useState(false)
+
+    const songs = album ? [...album.songs] : []
+    songs.sort(Comparators.of('track', SORT_ASC, songs))
+
+    useEffect(() => {
+        if (!cache)
+            return
+        if (!songs.length)
+            return;
+
+        cache && (async () => {
+            let notReady: DownloadTask[] = []
+            for (let i = 0; i < songs.length; i++) {
+                const url = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + songs[i].track + '/' + format + '/' + bitrate
+                const cachedSong = await cache.songByUrl(url)
+                if (!cachedSong) {
+                    notReady.push({
+                        url,
+                        song: songs[i].title,
+                        album: album.name,
+                        artist: artist.name,
+                        bitrate,
+                        format
+                    })
+                }
+            }
+            setNotReadySongs(notReady)
+        })()
+
+    }, [cache, album?.songs])
+
     if (!album)
         return <></>
 
 
     let isMobile = window.innerWidth <= 800;
-
-    const songs = [...album.songs]
-    songs.sort(Comparators.of('track', SORT_ASC, songs))
-
-    const refSeparatorSongs = useRef<HTMLSpanElement>()
 
     return <FlexRow className={css`
       margin: ${isMobile ? 0 : '20px'};
@@ -204,6 +240,18 @@ const ListSongs = ({artistId, albumName}) => {
                 tracks: {album.songs.length}
                 <span className={css`width: 25px;`}/>
                 duration: {formatDuration(getAlbumDuration(album))}
+                <span className={css`width: 25px;`}/>
+                {notReadySongs.length > 0 && <Button
+                    flat
+                    round
+                    disabled={downloadClicked}
+                    onClick={e => {
+                        setDownloadClicked(true)
+                        DownloadQueueStore.downloadAll(notReadySongs)
+                    }}
+                >
+                    <MaterialIcon icon={'download_for_offline'}/>
+                </Button>}
             </FlexRow>
 
             <span className={css`height: 25px;`} ref={refSeparatorSongs}/>
@@ -221,13 +269,80 @@ const ListSongs = ({artistId, albumName}) => {
 
 const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song: AlbumDtoSong }) => {
     const {position, queue} = useStore(PlayerStore.store)
+    const {format, bitrate} = useStore(SettingsStore.store)
+    const downloadQueueState = useStore(DownloadQueueStore.store)
+
+    const cache = useLocalCache()
+    const [cachedSong, setCachedSong] = useState<SongDTO>()
+    const [inDownloadQueue, setInDownloadQueue] = useState(false)
+
+    useEffect(() => {
+        cache && (async () => {
+            const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate
+            const cachedSong = await cache.songByUrl(audioUrl)
+            setCachedSong(cachedSong)
+        })()
+    }, [cache, inDownloadQueue])
+
+    useEffect(() => {
+        if (cachedSong)
+            return
+
+        setInDownloadQueue(!!downloadQueueState.queue.find(it => it.artist === artist.name && it.album === album.name && it.song === song.title))
+    }, [cachedSong, downloadQueueState.queue])
+
     const isCurrentSong = queue[position]?.songId === song.id
-    return <FlexRow className={css`padding: 5px;`}>
+    return <FlexRow className={css`
+      padding: 5px;
+
+      .MaterialIcon {
+        font-size: 16px;
+        color: gray;
+      }
+    `}>
         <span className={css`width: 20px;
           text-align: right;
           margin-right: 10px;`}>{song.track}.</span>
+
         <span className={css`
-          color: ${isCurrentSong ? 'red' : 'black'};
+          display: inline-flex;
+          flex-basis: 1px;
+          flex-grow: 1;
+          color: ${isCurrentSong ? '#c02727' : 'black'};
+          font-weight: ${isCurrentSong ? 'bold' : 'normal'};
         `}>{song.title}</span>
+
+        {!!cachedSong && <span className={css`
+          display: inline-flex;
+          flex-flow: row;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+        `}>
+            <MaterialIcon icon={'download_done'}/>
+        </span>}
+        {!cachedSong && <Button
+            flat
+            round
+            disabled={inDownloadQueue}
+            className={css`
+              min-width: 24px !important;
+              min-height: 24px;
+            `}
+            onClick={e => {
+                DownloadQueueStore.download(
+                    NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate,
+                    artist.name,
+                    album.name,
+                    song.title,
+                    format,
+                    bitrate
+                )
+            }}
+        >
+            <MaterialIcon icon={'download_for_offline'}/>
+        </Button>}
+
     </FlexRow>
 }
