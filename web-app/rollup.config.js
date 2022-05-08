@@ -33,9 +33,11 @@ const prepareHtml = () => {
 }
 
 const copyCss = () => fs.copySync('buildts/bundle.css', `build/static/${version}/bundle.css`);
+const copySW = () => fs.copySync('src/sw.js', `build/sw.js`);
 
 prepareHtml();
 copyCss();
+copySW();
 
 export default {
     input: 'buildts/src/index.js',

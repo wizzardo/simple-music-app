@@ -31,6 +31,7 @@ class BeApplication {
         return object : WebMvcConfigurer {
             override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
                 registry.addResourceHandler("/static/**").addResourceLocations("classpath:/public/static/");
+                registry.addResourceHandler("/sw.js").addResourceLocations("classpath:/public/sw.js");
             }
         }
     }

@@ -9,3 +9,7 @@ import {jsx} from 'react/jsx-runtime';
 setup(jsx);
 
 ReactDOM.render(<App/>, document.getElementById('root'));
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+}
