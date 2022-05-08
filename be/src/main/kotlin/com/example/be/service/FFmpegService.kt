@@ -2,7 +2,9 @@ package com.example.be.service
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
+import com.example.be.misc.TempFileInputStream
 import com.wizzardo.tools.image.ImageTools
+import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.misc.Stopwatch
 import org.springframework.stereotype.Service
 import java.io.File
@@ -62,7 +64,7 @@ class FFmpegService(
         )
     }
 
-    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): ByteArray {
+    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): TempFileInputStream {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == AudioFormat.FLAC)
             if (audio.contains("flac"))
@@ -85,9 +87,10 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): ByteArray {
+    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): TempFileInputStream {
         val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
         val tempOutFile = File.createTempFile("to_", "." + format.extension)
+        var delete = true
         try {
             songService.copySongData(artist, album, song, tempFile)
 
@@ -121,11 +124,13 @@ class FFmpegService(
 //            println("error:")
 //            val message = String(process.errorStream.readAllBytes())
 //            println(message)
-
-            return Files.readAllBytes(tempOutFile.toPath())
+            delete = false
+            return TempFileInputStream(tempOutFile)
+//            return Files.readAllBytes(tempOutFile.toPath())
         } finally {
             tempFile.delete()
-            tempOutFile.delete()
+            if (delete)
+                tempOutFile.delete()
         }
     }
 
@@ -188,8 +193,40 @@ class FFmpegService(
 //            val message = String(process.errorStream.readAllBytes())
 //            println(message)
 
-            val image = ImageTools.read(tempFile)
-            return ImageTools.saveJPGtoBytes(image, 90)
+
+//            val image = ImageTools.read(tempFile)
+//            return ImageTools.saveJPGtoBytes(image, 90)
+            return convertToJpg(tempFile)
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    fun convertToJpg(file: File): ByteArray {
+        val tempFile = File.createTempFile("image", ".jpg")
+        try {
+            val command =
+                arrayOf(
+                    "convert", "-quality ", "90", file.canonicalPath, tempFile.canonicalPath
+                )
+            println("executing command: ${Arrays.toString(command)}")
+            val process = Runtime.getRuntime().exec(command)
+            val exited = process.waitFor(30, TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroy()
+            }
+
+            val output = String(process.inputStream.readAllBytes())
+            if (output.isNotEmpty()) {
+                println("output:")
+                println(output)
+            }
+            val error = String(process.errorStream.readAllBytes())
+            if (error.isNotEmpty()) {
+                println("error:")
+                println(error)
+            }
+            return FileTools.bytes(tempFile)
         } finally {
             tempFile.delete()
         }

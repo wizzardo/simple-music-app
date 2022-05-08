@@ -6,6 +6,7 @@ import com.example.be.service.ArtistService
 import com.example.be.service.FFmpegService
 import com.example.be.service.SongService
 import com.example.be.service.UploadService
+import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -103,14 +104,17 @@ class ArtistController(
         @PathVariable artistId: Long,
         @PathVariable albumName: String,
         @PathVariable trackNumber: Int,
-    ): ResponseEntity<ByteArray> {
+    ): ResponseEntity<InputStreamResource> {
         val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
         val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
-        val songData = songService.getSongData(artist, album, song)
+        val data = songService.getSongData(artist, album, song)
         val type = FFmpegService.AudioFormat.values().find { song.path.endsWith(it.name, true) }?.mimeType
-        val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream") }
-        return ResponseEntity(songData, headers, HttpStatus.OK)
+        val headers = HttpHeaders().apply {
+            this.contentLength = data.length()
+            this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream")
+        }
+        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
     }
 
     @GetMapping(value = ["/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}"], produces = ["*/*"])
@@ -120,13 +124,16 @@ class ArtistController(
         @PathVariable trackNumber: Int,
         @PathVariable format: FFmpegService.AudioFormat,
         @PathVariable bitrate: Int,
-    ): ResponseEntity<ByteArray> {
+    ): ResponseEntity<InputStreamResource> {
         val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
         val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
         val data = ffmpegService.convert(artist, album, song, format, bitrate)
-        val headers = HttpHeaders().apply { this.contentType = MediaType.parseMediaType(format.mimeType) }
-        return ResponseEntity(data, headers, HttpStatus.OK)
+        val headers = HttpHeaders().apply {
+            this.contentLength = data.length()
+            this.contentType = MediaType.parseMediaType(format.mimeType)
+        }
+        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
     }
 
     @GetMapping(value = ["/artists/{artistPath}/{albumPath}/cover.jpg"], produces = ["image/jpeg"])
@@ -134,22 +141,23 @@ class ArtistController(
         @PathVariable artistPath: String,
         @PathVariable albumPath: String,
         @RequestHeader(value = "If-None-Match", required = false) ifNoneMatch: String?,
-    ): ResponseEntity<ByteArray> {
+    ): ResponseEntity<InputStreamResource> {
         val artist = artistService.getArtistByPath(artistPath) ?: return ResponseEntity.notFound().build()
         val album = songService.getAlbum(artist, albumPath)
         if (album.coverPath == null)
             return ResponseEntity.notFound().build()
 
         if (ifNoneMatch != null && ifNoneMatch == "\"" + album.coverHash + "\"")
-            return ResponseEntity<ByteArray>(HttpStatus.NOT_MODIFIED)
+            return ResponseEntity<InputStreamResource>(HttpStatus.NOT_MODIFIED)
 
         val data = songService.getAlbumCoverData(artistPath, albumPath)
 
         val headers = HttpHeaders().apply {
+            this.contentLength = data.length()
             this.contentType = MediaType.parseMediaType("image/jpeg")
             this.cacheControl = MAX_AGE_1_YEAR
             this.eTag = "\"" + album.coverHash + "\""
         }
-        return ResponseEntity(data, headers, HttpStatus.OK)
+        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
     }
 }

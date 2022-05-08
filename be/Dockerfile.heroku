@@ -10,6 +10,8 @@ RUN wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.t
     && rm -rf ffmpeg-5.0.1-amd64-static \
     && rm ffmpeg-release-amd64-static.tar.xz
 
+RUN apk --no-cache add imagemagick
+
 COPY ./build/libs/be-0.0.1-SNAPSHOT.jar .
 
 CMD ["java", "-Dspring.profiles.active=docker", "-jar", "be-0.0.1-SNAPSHOT.jar"]
