@@ -55,6 +55,27 @@ class ArtistController(
         return ResponseEntity.noContent().build()
     }
 
+    @DeleteMapping("/artists/{artistId}/{albumId}")
+    fun deleteAlbum(
+        @PathVariable artistId: Long,
+        @PathVariable albumId: String,
+    ): ResponseEntity<ArtistDto> {
+        val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
+        artistService.delete(item, albumId)
+        return ResponseEntity.ok(artistService.getArtist(artistId))
+    }
+
+    @DeleteMapping("/artists/{artistId}/{albumId}/{songId}")
+    fun deleteSong(
+        @PathVariable artistId: Long,
+        @PathVariable albumId: String,
+        @PathVariable songId: String,
+    ): ResponseEntity<ArtistDto> {
+        val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
+        artistService.delete(item, albumId, songId)
+        return ResponseEntity.ok(artistService.getArtist(artistId))
+    }
+
     data class MergeAlbumsRequest(
         val artistId: Long,
         val intoAlbumId: String,

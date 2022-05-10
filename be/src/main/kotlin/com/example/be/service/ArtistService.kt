@@ -5,11 +5,8 @@ import com.example.be.db.dto.ArtistDto
 import com.example.be.db.dto.toArtistDto
 import com.example.be.db.repository.ArtistRepository
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.wizzardo.tools.io.FileTools
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.io.File
 
 @Service
 class ArtistService(
@@ -59,6 +56,14 @@ class ArtistService(
                     }
                     album.songs.forEach {
                         storageService.move("${from.path}/${fromAlbum.path}/${it.path}", "${to.path}/${album.path}/${it.path}")
+                    }
+                } else {
+                    album.songs.forEach { song ->
+                        val fromSong = fromAlbum.songs.find { it.id == song.id }!!
+                        if (song.title != fromSong.title || song.track != fromSong.track) {
+                            song.path = "${song.track} - ${song.title}.${fromSong.path.substringAfterLast(".")}"
+                            storageService.move("${from.path}/${fromAlbum.path}/${fromSong.path}", "${to.path}/${album.path}/${song.path}")
+                        }
                     }
                 }
             }
@@ -125,5 +130,20 @@ class ArtistService(
     fun delete(item: ArtistDto) {
         artistRepository.deleteById(item.id)
         storageService.delete(item.path)
+    }
+
+    fun delete(artist: ArtistDto, albumId: String) {
+        val album = artist.albums.find { it.id == albumId }!!
+        artist.albums -= album
+        artistRepository.update(artist.id, artist, objectMapper)
+        storageService.delete(artist.path + "/" + album.path)
+    }
+
+    fun delete(artist: ArtistDto, albumId: String, songId: String) {
+        val album = artist.albums.find { it.id == albumId }!!
+        val song = album.songs.find { it.id == songId }!!
+        album.songs -= song
+        artistRepository.update(artist.id, artist, objectMapper)
+        storageService.delete("${artist.path}/${album.path}/${song.path}")
     }
 }
