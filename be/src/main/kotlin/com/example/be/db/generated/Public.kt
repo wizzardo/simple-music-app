@@ -5,6 +5,7 @@ package com.example.be.db.generated
 
 
 import com.example.be.db.generated.tables.Artist
+import com.example.be.db.generated.tables.Config
 import com.example.be.db.generated.tables.FlywaySchemaHistory
 
 import javax.annotation.processing.Generated
@@ -42,6 +43,11 @@ open class Public : SchemaImpl("public", DefaultCatalog.DEFAULT_CATALOG) {
     val ARTIST: Artist get() = Artist.ARTIST
 
     /**
+     * The table <code>public.config</code>.
+     */
+    val CONFIG: Config get() = Config.CONFIG
+
+    /**
      * The table <code>public.flyway_schema_history</code>.
      */
     val FLYWAY_SCHEMA_HISTORY: FlywaySchemaHistory get() = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY
@@ -50,6 +56,7 @@ open class Public : SchemaImpl("public", DefaultCatalog.DEFAULT_CATALOG) {
 
     override fun getTables(): List<Table<*>> = listOf(
         Artist.ARTIST,
+        Config.CONFIG,
         FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY
     )
 }

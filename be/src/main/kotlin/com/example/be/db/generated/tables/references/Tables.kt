@@ -5,6 +5,7 @@ package com.example.be.db.generated.tables.references
 
 
 import com.example.be.db.generated.tables.Artist
+import com.example.be.db.generated.tables.Config
 import com.example.be.db.generated.tables.FlywaySchemaHistory
 
 
@@ -13,6 +14,11 @@ import com.example.be.db.generated.tables.FlywaySchemaHistory
  * The table <code>public.artist</code>.
  */
 val ARTIST: Artist = Artist.ARTIST
+
+/**
+ * The table <code>public.config</code>.
+ */
+val CONFIG: Config = Config.CONFIG
 
 /**
  * The table <code>public.flyway_schema_history</code>.

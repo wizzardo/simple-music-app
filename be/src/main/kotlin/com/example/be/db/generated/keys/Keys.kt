@@ -5,8 +5,10 @@ package com.example.be.db.generated.keys
 
 
 import com.example.be.db.generated.tables.Artist
+import com.example.be.db.generated.tables.Config
 import com.example.be.db.generated.tables.FlywaySchemaHistory
 import com.example.be.db.generated.tables.records.ArtistRecord
+import com.example.be.db.generated.tables.records.ConfigRecord
 import com.example.be.db.generated.tables.records.FlywaySchemaHistoryRecord
 
 import org.jooq.UniqueKey
@@ -20,4 +22,5 @@ import org.jooq.impl.Internal
 // -------------------------------------------------------------------------
 
 val ARTIST_PKEY: UniqueKey<ArtistRecord> = Internal.createUniqueKey(Artist.ARTIST, DSL.name("artist_pkey"), arrayOf(Artist.ARTIST.ID), true)
+val CONFIG_PKEY: UniqueKey<ConfigRecord> = Internal.createUniqueKey(Config.CONFIG, DSL.name("config_pkey"), arrayOf(Config.CONFIG.ID), true)
 val FLYWAY_SCHEMA_HISTORY_PK: UniqueKey<FlywaySchemaHistoryRecord> = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("flyway_schema_history_pk"), arrayOf(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK), true)
