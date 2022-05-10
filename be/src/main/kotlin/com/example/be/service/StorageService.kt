@@ -1,12 +1,18 @@
 package com.example.be.service
 
+import com.example.be.db.generated.tables.pojos.Config
+import com.example.be.db.repository.ConfigRepository
 import com.wizzardo.cloud.storage.FileInfo
 import com.wizzardo.cloud.storage.Storage
 import com.wizzardo.cloud.storage.degoo.DegooStorage
 import com.wizzardo.cloud.storage.fs.LocalStorage
+import com.wizzardo.tools.json.JsonObject
+import com.wizzardo.tools.json.JsonTools
+import org.jooq.JSONB
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.File
+import java.time.LocalDateTime
 
 @Component
 class StorageService(
@@ -20,6 +26,7 @@ class StorageService(
     private val username: String?,
     @Value("\${storage.password:}")
     private val password: String?,
+    private val configRepository: ConfigRepository,
 ) : Storage<FileInfo> {
 
     protected val storage: Storage<FileInfo>
@@ -37,7 +44,29 @@ class StorageService(
 
         storage = when (type) {
             "local" -> LocalStorage(File(path)) as Storage<FileInfo>
-            "degoo" -> DegooStorage(username, password) as Storage<FileInfo>
+            "degoo" -> DegooStorage(username, password).also {
+                it.setTokenGetterSetter({
+                    configRepository.findByName("DEGOO_TOKEN")?.data?.data()?.let {
+                        JsonTools.parse(it).asJsonObject().getAsString("token")
+                    }
+                }, {
+                    val config = configRepository.findByName("DEGOO_TOKEN")
+                    if (config != null) {
+                        config.updated = LocalDateTime.now()
+                        config.data = JSONB.valueOf(JsonObject().append("token", it).toString())
+                        configRepository.update(config)
+                    } else
+                        configRepository.insert(
+                            Config(
+                                0,
+                                LocalDateTime.now(),
+                                LocalDateTime.now(),
+                                "DEGOO_TOKEN",
+                                JSONB.valueOf(JsonObject().append("token", it).toString())
+                            )
+                        )
+                })
+            } as Storage<FileInfo>
             else -> throw IllegalArgumentException("Unknown storage type: ${type}")
         }
 
