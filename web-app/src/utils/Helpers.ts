@@ -2,6 +2,8 @@ import {AlbumDto} from "../services/NetworkService";
 
 
 export const formatDuration = it => {
+    if (!Number.isFinite(it))
+        return ''
     let minutes = Math.floor(Number(it / 1000 / 60));
     let seconds = Math.floor((it / 1000) % 60);
     if (minutes < 60)

@@ -3,13 +3,21 @@ import {useStore} from "react-ui-basics/store/Store";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
 
-const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string) => {
+const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string, isRetrying?: boolean) => {
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
 
     request.onload = () => {
         let audioData = request.response;
+        if (request.status != 200) {
+            console.error(url, request.status, request.responseText)
+            if (!isRetrying) {
+                load(url, setAudio, localCache, artist, album, name, true)
+            }
+            return
+        }
+
         const contentType = request.getResponseHeader('Content-Type');
         const data = audioData.slice();
 

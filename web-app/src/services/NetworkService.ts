@@ -1,7 +1,8 @@
 import {fetch} from "./HttpClient";
 
 const origin = window.location.origin;
-const baseurl = origin.indexOf('localhost') !== -1 ? 'http://localhost:8080' : origin;
+const baseurl = origin.indexOf('localhost') !== -1 ? 'http://192.168.0.147:8080' :
+    (origin.indexOf('192.168.0.147') !== -1 ? 'http://192.168.0.147:8080' : origin);
 
 type Params = { [id: string]: any };
 type UrlMaker = (params: Params) => string;

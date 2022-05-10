@@ -66,8 +66,9 @@ export default () => {
 
                 <Route path={"/:artistId(^[0-9]+$)?/:album?"}>
                     <Library artistId={null} album={null}/>
-                    <Player/>
                 </Route>
+
+                {queue.length > 0 && <Player/>}
 
                 <Dialog/>
                 <DownloadQueue/>

@@ -11,6 +11,7 @@ export type PlayerState = {
     queue: QueuedSong[],
     position: number,
     offset: number,
+    volume: number,
     playing: boolean,
 }
 
@@ -18,6 +19,7 @@ export const store = new Store({
     queue: [],
     position: 0,
     offset: 0,
+    volume: 1,
     playing: false,
 } as PlayerState)
 
@@ -27,6 +29,7 @@ export const setQueue = (songs: QueuedSong[]) => {
     store.set(state => {
         state.queue = songs
         state.position = 0
+        state.offset = 0
     });
 }
 export const play = (songs: QueuedSong[]) => {
@@ -34,6 +37,7 @@ export const play = (songs: QueuedSong[]) => {
         state.queue = songs
         state.position = 0
         state.playing = true
+        state.offset = 0
     });
 }
 
@@ -52,6 +56,11 @@ export const setOffset = (offset: number) => {
         state.offset = offset
     });
 }
+export const setVolume = (volume: number) => {
+    store.set(state => {
+        state.volume = volume
+    });
+}
 
 export const next = () => {
     store.set(state => {
@@ -61,9 +70,18 @@ export const next = () => {
     });
 }
 
-window.onbeforeunload = () => {
-    localStorage.setItem('playerState', JSON.stringify(store.get()));
+export const prev = () => {
+    store.set(state => {
+        state.position--
+        if (state.position < 0)
+            state.position = state.queue.length - 1
+    });
 }
+
+window.addEventListener('unload', evt => {
+    localStorage.setItem('playerState', JSON.stringify(store.get()));
+});
+
 (() => {
     let savedState = localStorage.getItem('playerState');
     if (savedState) {

@@ -23,6 +23,11 @@ const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album
 
     request.onload = () => {
         let audioData = request.response;
+        if (request.status != 200) {
+            console.error(url, request.status, request.responseText)
+            return
+        }
+
         const contentType = request.getResponseHeader('Content-Type');
         const data = audioData.slice();
 
@@ -48,10 +53,9 @@ const Player = ({}) => {
 
     const artistsStore = useStore(ArtistsStore.store)
     const {format, bitrate} = useStore(SettingsStore.store)
-    const {playing, position, queue, offset} = useStore(PlayerStore.store)
+    const {playing, position, queue, offset, volume} = useStore(PlayerStore.store)
 
     const [progress, setProgress] = useState(0)
-    const [updater, setUpdater] = useState<NodeJS.Timer>()
 
     const queuedSong = queue[position]
     const artist = artistsStore.map[queuedSong?.artistId];
@@ -61,6 +65,153 @@ const Player = ({}) => {
 
     const [audio, setAudio] = useState<HTMLAudioElement>()
     useEffect(() => {
+        let audio = new Audio();
+        setAudio(audio)
+
+        let updater;
+        audio.addEventListener('pause', (e) => {
+            console.log('on pause', e)
+            // PlayerStore.setPlaying(false)
+            // clearInterval(updater)
+            PlayerStore.setOffset(audio.currentTime)
+        });
+
+        audio.addEventListener('play', (e) => {
+            console.log('on play', e)
+            PlayerStore.setPlaying(true)
+
+            const {queue, position} = PlayerStore.store.get();
+
+            const queuedSong = queue[position]
+            const artist = ArtistsStore.store.get().map[queuedSong?.artistId];
+            const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
+            const song = album?.songs?.find(it => it.id === queuedSong?.songId);
+            const duration = song?.duration / 1000
+
+
+            // if (navigator.mediaSession) {
+            //     navigator.mediaSession.metadata = new MediaMetadata({
+            //         title: song.title,
+            //         album: album.name,
+            //         artist: artist.name,
+            //         artwork: !album.coverHash ? [] : [
+            //             {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
+            //         ]
+            //     });
+            //     navigator.mediaSession.setPositionState({
+            //         duration,
+            //         position: audio.currentTime,
+            //         playbackRate: 1,
+            //
+            //     })
+            //     navigator.mediaSession.setActionHandler('previoustrack', () => {
+            //         PlayerStore.prev()
+            //     });
+            //
+            //     navigator.mediaSession.setActionHandler('nexttrack', () => {
+            //         PlayerStore.next()
+            //     });
+            // }
+            console.log('start updater', duration)
+
+            // if (navigator.mediaSession) {
+            //     navigator.mediaSession.setPositionState({duration, position: audio.currentTime, playbackRate: 1})
+            // }
+
+            clearInterval(updater)
+            const interval = setInterval(() => {
+                const playerState = PlayerStore.store.get();
+                if (!playerState.playing) {
+                    clearInterval(interval)
+                    return
+                }
+                const position = audio.currentTime
+
+                const progress = position / duration * 100
+                if (!WindowActiveStore.get().hidden)
+                    setProgress(Math.min(progress, 100))
+                if (progress > 100) {
+                    // audio.pause()
+                    clearInterval(interval)
+                    PlayerStore.next()
+                }
+            }, 1000 / 30);
+            // setUpdater(interval)
+            updater = interval
+        });
+
+        audio.addEventListener('loadeddata', async ev => {
+            console.log('loadeddata', ev)
+            const {playing, queue, position} = PlayerStore.store.get();
+            if (!playing)
+                return
+
+            try {
+                await audio.play()
+
+                const queuedSong = queue[position]
+                const artist = ArtistsStore.store.get().map[queuedSong?.artistId];
+                const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
+                const song = album?.songs?.find(it => it.id === queuedSong?.songId);
+                const duration = song?.duration / 1000
+
+
+                if (navigator.mediaSession) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: song.title,
+                        album: album.name,
+                        artist: artist.name,
+                        artwork: !album.coverHash ? [] : [
+                            {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
+                        ]
+                    });
+                    navigator.mediaSession.setPositionState({
+                        duration,
+                        position: audio.currentTime > duration ? 0 : audio.currentTime,
+                        playbackRate: 1,
+                    })
+                    navigator.mediaSession.setActionHandler('previoustrack', () => {
+                        PlayerStore.prev()
+                    });
+
+                    navigator.mediaSession.setActionHandler('nexttrack', () => {
+                        PlayerStore.next()
+                    });
+                    navigator.mediaSession.setActionHandler('stop', () => {
+                        PlayerStore.setPlaying(false)
+                        PlayerStore.setOffset(0)
+                        audio.pause()
+                    });
+                    navigator.mediaSession.setActionHandler('pause', () => {
+                        PlayerStore.setPlaying(false)
+                        PlayerStore.setOffset(audio.currentTime)
+                        audio.pause()
+                    });
+
+                    navigator.mediaSession.setActionHandler('seekto', (e) => {
+                        if (e.fastSeek && 'fastSeek' in audio)
+                            audio.fastSeek(e.seekTime);
+                        else
+                            audio.currentTime = e.seekTime;
+
+                        navigator.mediaSession.setPositionState({
+                            duration,
+                            position: audio.currentTime,
+                            playbackRate: 1,
+                        })
+                    });
+                }
+
+            } catch (e) {
+                console.error(e)
+                PlayerStore.setPlaying(false)
+                return;
+            }
+
+        })
+    }, [])
+
+    useEffect(() => {
         (async () => {
             if (!localCache)
                 return
@@ -68,28 +219,24 @@ const Player = ({}) => {
                 return
             if (!song)
                 return
+            if (!audio)
+                return
 
             const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate
             if (audio && audio.dataset.audioUrl === audioUrl) {
                 return
             }
 
-            if (audio) {
-                URL.revokeObjectURL(audio.dataset.objectUrl)
-                audio.pause()
-            }
+            URL.revokeObjectURL(audio.dataset.objectUrl)
 
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log('songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = (song, data) => {
+            const loadAudio = async (song, data) => {
                 console.log('decoding', song)
-                const nextAudio = new Audio();
                 const blob = new Blob([new Uint8Array(data, 0, data.byteLength)])
-                nextAudio.src = nextAudio.dataset.objectUrl = URL.createObjectURL(blob)
-                nextAudio.dataset.audioUrl = audioUrl
-                setAudio(nextAudio)
-                PlayerStore.setOffset(0)
+                audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                audio.dataset.audioUrl = audioUrl
             };
 
             if (!cachedSong) {
@@ -100,62 +247,38 @@ const Player = ({}) => {
                 loadAudio(cachedSong, sd.data)
             }
         })().catch(console.error)
-    }, [localCache, playing, song?.track])
+    }, [localCache, playing, song?.track, audio])
 
+    useEffect(() => {
+        if (!playing)
+            return
+        if (!audio)
+            return
+
+        console.log('set offset', offset, playing)
+        audio.currentTime = offset
+        audio.play().catch(console.error)
+
+    }, [offset, playing])
 
     useEffect(() => {
         if (!audio)
             return
+        if (!Number.isFinite(volume))
+            return
 
-        if (playing) {
-            if (audio) {
-                audio.pause()
-            }
-            (async () => {
-                console.log('start audio', offset)
-                audio.currentTime = offset
-                // audio.volume = 0.05
-                try {
-                    await audio.play()
-                } catch (e) {
-                    console.error(e)
-                    PlayerStore.setPlaying(false)
-                    return;
-                }
-                const startTime = performance.now() / 1000;
-                clearInterval(updater)
-                const interval = setInterval(() => {
-                    const position = performance.now() / 1000 - startTime + offset
-                    const progress = position / duration * 100
-                    if (!WindowActiveStore.get().hidden)
-                        setProgress(Math.min(progress, 100))
-                    if (progress > 100) {
-                        audio.pause()
-                        clearInterval(interval)
-                        PlayerStore.next()
-                    }
-                }, 1000 / 30);
-                setUpdater(interval)
-            })()
-        } else {
-            clearInterval(updater)
-            PlayerStore.setOffset(0)
-            if (!audio)
-                return
+        audio.volume = volume
 
-            let offset = duration / 100 * progress;
-            PlayerStore.setOffset(offset)
+    }, [audio, volume])
 
-            audio.pause()
-        }
-
-    }, [audio, playing, offset])
+    let isMobile = window.innerWidth <= 800;
 
     return <div className={css`
       position: fixed;
       bottom: 0px;
       left: 0px;
       right: 0px;
+      user-select: none;
     `}>
         <div className={css`
           padding: 20px;
@@ -169,41 +292,132 @@ const Player = ({}) => {
                 <span className={css`margin-right: 10px;`}>
                     {audio && formatDuration(duration * 1000 / 100 * progress)}
                 </span>
-                    <ProgressBar progress={progress} onClick={progress => {
-                        if (!audio)
-                            return
+                    <ProgressBar draggable={false}
+                                 progress={progress}
+                                 onClick={progress => {
+                                     if (!audio)
+                                         return
 
-                        let offset = duration / 100 * progress;
-                        PlayerStore.setOffset(offset)
-                        PlayerStore.setPlaying(true)
-                    }}/>
+                                     let offset = duration / 100 * progress;
+                                     PlayerStore.setOffset(offset)
+                                     PlayerStore.setPlaying(true)
+                                 }}
+                    />
                     <span className={css`margin-left: 10px;`}>
                     {audio && formatDuration(duration * 1000)}
                 </span>
                 </FlexRow>
 
                 <FlexRow className={css`
-                  justify-content: center;
                   margin-top: 10px;
                 `}>
-                    <Button className={classNames('red', css`
-                      padding: 10px !important;
-                      height: unset;
+                    {!isMobile && <VolumeControl/>}
 
-                      .MaterialIcon {
-                        font-size: 30px;
-                        color: white;
-                      }
-                    `)} flat round onClick={e => {
-                        audio?.pause()
-                        queue.length && PlayerStore.setPlaying(!playing);
-                    }}>
-                        <MaterialIcon icon={!playing ? 'play_arrow' : 'pause'}/>
-                    </Button>
+                    <FlexRow className={css`
+                      justify-content: center;
+                      flex-grow: 1;
+                    `}>
+                        <Button className={classNames('gray', css`
+                          .MaterialIcon {
+                            font-size: 20px;
+                            color: gray;
+                          }
+                        `)} flat round onClick={e => {
+                            PlayerStore.prev()
+                            PlayerStore.setOffset(0)
+                            PlayerStore.setPlaying(true)
+                        }}>
+                            <MaterialIcon icon={'skip_previous'}/>
+                        </Button>
+
+                        <Button className={classNames('red', css`
+                          padding: 10px !important;
+                          height: unset;
+                          margin-left: 20px;
+                          margin-right: 20px;
+
+                          .MaterialIcon {
+                            font-size: 30px;
+                            color: white;
+                          }
+                        `)} flat round onClick={e => {
+                            audio?.pause()
+                            queue.length && PlayerStore.setPlaying(!playing);
+                        }}>
+                            <MaterialIcon icon={!playing ? 'play_arrow' : 'pause'}/>
+                        </Button>
+
+
+                        <Button className={classNames('gray', css`
+                          .MaterialIcon {
+                            font-size: 20px;
+                            color: gray;
+                          }
+                        `)} flat round onClick={e => {
+                            PlayerStore.next()
+                            PlayerStore.setOffset(0)
+                            PlayerStore.setPlaying(true)
+                        }}>
+                            <MaterialIcon icon={'skip_next'}/>
+                        </Button>
+                    </FlexRow>
                 </FlexRow>
+
             </div>
         </div>
     </div>
 }
 
 export default Player;
+
+const VolumeControl = ({className}: { className?: any }) => {
+    const {volume} = useStore(PlayerStore.store)
+    const [isDragging, setIsDragging] = useState(false)
+
+    useEffect(() => {
+        if (isDragging) {
+            let removeListeners: () => void;
+            let upListener = ev => {
+                setIsDragging(false)
+                removeListeners()
+            };
+            removeListeners = () => {
+                document.removeEventListener('mouseup', upListener)
+            };
+            document.addEventListener('mouseup', upListener)
+            return removeListeners
+        }
+    }, [isDragging])
+    return <FlexRow
+        className={classNames(css`
+          position: absolute;
+
+          .MaterialIcon {
+            color: grey;
+            margin-right: 10px;
+          }
+
+          .ProgressBar {
+            width: 0px;
+            transition: width 0.2s ease-out;
+
+            .progress:after {
+              opacity: 0;
+            }
+          }
+
+          &:hover, &.hover {
+            .ProgressBar {
+              width: 100px;
+
+              .progress:after {
+                opacity: 1;
+              }
+            }
+          }
+        `, className, isDragging && 'hover')}
+        onMouseDown={e => setIsDragging(true)}>
+        <MaterialIcon icon={'volume_up'}/>
+        <ProgressBar draggable={true} progress={volume * 100} onClick={volume => PlayerStore.setVolume(volume / 100)}/>
+    </FlexRow>
+}

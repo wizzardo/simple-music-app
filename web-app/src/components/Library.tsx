@@ -17,11 +17,12 @@ import {Song as SongDTO, useLocalCache} from "../services/LocalCacheService";
 import * as SettingsStore from "../stores/SettingsStore";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {DownloadTask} from "../stores/DownloadQueueStore";
+import {useWindowSize} from "../utils/Hooks";
 
 
 const Cover = styled("img")`
   border-radius: 4px;
-  max-width: 150px;
+  max-width: 100%;
   max-height: 150px;
 `;
 const Album = styled("div")`
@@ -29,6 +30,8 @@ const Album = styled("div")`
   flex-flow: column nowrap;
   padding: 5px;
   align-items: center;
+  width: 200px;
+  box-sizing: border-box;
 
   &:hover {
     cursor: pointer;
@@ -37,6 +40,7 @@ const Album = styled("div")`
 const AlbumTitle = styled("span")`
   margin: 5px;
   font-size: 16px;
+  text-align: center;
 `;
 const AlbumDuration = styled("span")`
   color: gray;
@@ -45,13 +49,12 @@ const AlbumDuration = styled("span")`
 const AlbumArtist = styled("span")`
   color: gray;
   font-size: 12px;
-`;
-
-const LibraryDiv = styled("div")`
+  text-align: center;
 `;
 
 const Library = ({artistId, album}) => {
     const artistsStore = useStore(ArtistsStore.store)
+    const {queue} = useStore(PlayerStore.store)
     const albums = artistsStore.ids.map(id => artistsStore.map[id].albums.map(it => ({...it, artistId: id}))).flat()
 
     useEffect(() => {
@@ -62,22 +65,54 @@ const Library = ({artistId, album}) => {
         artistId && NetworkService.getArtist({id: artistId}).then(ArtistsStore.set)
     }, [artistId])
 
-    return <LibraryDiv>
+
+    const windowSize = useWindowSize();
+
+    const isMobile = windowSize.width <= 800;
+    let albumCardWidth = '200px'
+    if (isMobile) {
+        albumCardWidth = `${(windowSize.width - 5) / 2}px`
+    }
+
+    return <Scrollable className={css`
+      margin: ${isMobile ? '0 -20px' : '0'};
+      max-height: ${queue.length ? windowSize.height - 120 - 40 : windowSize.height - 40}px !important;
+    `}>
+        {window.location.pathname.length > 1 && <Button className={classNames('', css`
+          position: absolute;
+          top: 10px;
+          left: 10px;
+
+          .MaterialIcon {
+            font-size: 20px;
+            color: gray;
+          }
+        `)} flat round onClick={e => {
+            let pathname = window.location.pathname;
+            pathname = pathname.substring(0, pathname.lastIndexOf('/'))
+            if (!pathname)
+                pathname = '/'
+            pushLocation(pathname)
+        }}>
+            <MaterialIcon icon={'chevron_left'}/>
+        </Button>}
+
+
         <Route path={"/"}>
-            <ListArtists/>
+            <ListArtists cardWidth={albumCardWidth}/>
         </Route>
         <Route path={"/:artistId"}>
-            <ListAlbums artistId={null}/>
+            <ListAlbums cardWidth={albumCardWidth} artistId={null}/>
         </Route>
         <Route path={"/:artistId/:albumName"}>
             <ListSongs albumName={null} artistId={null}/>
         </Route>
-    </LibraryDiv>
+    </Scrollable>
 }
 
 export default Library;
 
-const ListArtists = () => {
+const ListArtists = ({cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
     const albums = artistsStore.ids.map(id => artistsStore.map[id].albums.map(it => ({...it, artistId: id}))).flat()
 
@@ -86,7 +121,9 @@ const ListArtists = () => {
     }, [])
 
     return <>
-        {albums.map(it => <Album onClick={e => {
+        {albums.map(it => <Album className={css`
+          width: ${cardWidth};
+        `} onClick={e => {
             pushLocation(`/${it.artistId}/${it.name}`)
         }}>
             {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artistsStore.map[it.artistId].path + '/' + it.path + '/' + it.coverPath} alt={it.name}/>}
@@ -101,7 +138,7 @@ const ListArtists = () => {
 }
 
 
-const ListAlbums = ({artistId}) => {
+const ListAlbums = ({artistId, cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
     const artist = artistsStore.map[artistId];
     const albums = artist?.albums || []
@@ -111,7 +148,9 @@ const ListAlbums = ({artistId}) => {
     }, [artistId])
 
     return <>
-        {albums.map(it => <Album onClick={e => {
+        {albums.map(it => <Album className={css`
+          width: ${cardWidth};
+        `} onClick={e => {
             pushLocation(`/${artistId}/${it.name}`)
         }}>
             {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + it.path + '/' + it.coverPath} alt={it.name}/>}
