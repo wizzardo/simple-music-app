@@ -2,16 +2,15 @@ package com.example.be.service
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
+import com.example.be.db.dto.toArtistDto
 import com.example.be.db.generated.tables.pojos.Artist
 import com.example.be.db.repository.ArtistRepository
 import com.example.be.service.FFmpegService.MetaData
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.wizzardo.tools.image.ImageTools
-import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.security.MD5
 import org.jooq.JSONB
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -35,19 +34,24 @@ class UploadService(
     }
 
     fun upload(
-        file: MultipartFile
+        file: MultipartFile,
+        artistId: Long?,
+        albumId: String?
     ): ResponseEntity<Any> {
         val tempFile = File("/tmp/", file.originalFilename ?: file.name)
         try {
             file.transferTo(tempFile)
             val metaData: MetaData = ffmpegService.getMetaData(tempFile)
+            var artist: ArtistDto? = artistId?.let { artistService.getArtist(it) }
 
-            val artistPath = metaData.artist
-                ?.replace("/", " - ")
+            val artistPath = artist?.path
+                ?: metaData.artist?.replace("/", " - ")
                 ?: throw IllegalArgumentException("artist tag is empty!")
-            val album = metaData.album
-                ?.replace("/", " - ")
+
+            val album = albumId?.let { artist?.albums?.find { it.id == albumId } }?.path
+                ?: metaData.album?.replace("/", " - ")
                 ?: throw IllegalArgumentException("album tag is empty!")
+
             val title = metaData.title
                 ?.replace("/", " - ")
                 ?: throw IllegalArgumentException("title tag is empty!")
@@ -61,7 +65,8 @@ class UploadService(
             while (true) {
                 try {
                     tries++;
-                    val artist = getOrCreateArtist(metaData, artistPath)
+                    if (artist == null)
+                        artist = getOrCreateArtist(metaData, artistPath)
                     if (!addSong(artist, metaData, album, fileName, tempFile))
                         continue
                     break
@@ -79,10 +84,9 @@ class UploadService(
     }
 
     @Transactional
-    fun addSong(artist: Artist, metaData: MetaData, albumPath: String, fileName: String, audio: File): Boolean {
-        val albums: MutableList<AlbumDto> = objectMapper.readValue(artist.albums?.data(), object : TypeReference<ArrayList<AlbumDto>>() {})
-        val album = albums.find { it.name == metaData.album }
-            ?: createAlbum(metaData, albumPath).also { albums.add(it) }
+    fun addSong(artist: ArtistDto, metaData: MetaData, albumPath: String, fileName: String, audio: File): Boolean {
+        val album = artist.albums.find { it.path == albumPath }
+            ?: createAlbum(metaData, albumPath).also { artist.albums += it }
         val song = createSong(metaData, fileName)
         album.songs += song
 
@@ -97,24 +101,24 @@ class UploadService(
             }
         }
 
-        val updated = artistRepository.updateAlbums(artist, albums, objectMapper)
+        val updated = artistRepository.update(artist.id, artist, objectMapper)
         if (updated == 1) {
             println("added song ${song.track} ${song.title} to ${album.name}:")
             album.songs.forEach { println("  ${it.track} ${it.title}") }
-        }else{
+        } else {
             println("retrying update")
         }
         return updated == 1
     }
 
     @Transactional
-    fun getOrCreateArtist(metaData: MetaData, path: String): Artist {
+    fun getOrCreateArtist(metaData: MetaData, path: String): ArtistDto {
         var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
         if (artist == null) {
             artist = createArtistDto(metaData, path)
             artistRepository.insert(artist)
         }
-        return artist
+        return artist.toArtistDto(objectMapper)
     }
 
     private fun createArtistDto(metaData: MetaData, relativePath: String): Artist = Artist().apply {

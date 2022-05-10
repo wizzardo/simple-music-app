@@ -11,7 +11,11 @@ class UploadController(
 ) {
     @PostMapping("/upload")
     fun upload(
-        @RequestParam("file") file: MultipartFile
-    ): ResponseEntity<Any> = uploadService.upload(file)
+        @RequestParam("file") file: MultipartFile,
+        @RequestParam("artistId", required = false) artistId: Long?,
+        @RequestParam("albumId", required = false) albumId: String?,
+    ): ResponseEntity<Any> {
+        return uploadService.upload(file, artistId, albumId)
+    }
 
 }
