@@ -1,8 +1,8 @@
 import ProgressBar from "./ProgressBar";
 import Button from "react-ui-basics/Button";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 
-import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
+import {Song, SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
 import {css} from "goober";
 import {formatDuration} from "../utils/Helpers";
 import {FlexRow} from "./SharedComponents";
@@ -63,11 +63,9 @@ const Player = ({}) => {
     const song = album?.songs?.find(it => it.id === queuedSong?.songId);
     const duration = song?.duration / 1000
 
-    const [audio, setAudio] = useState<HTMLAudioElement>()
-    useEffect(() => {
-        let audio = new Audio();
-        setAudio(audio)
+    const [audio] = useState<HTMLAudioElement>(() => new Audio())
 
+    useEffect(() => {
         let updater;
         audio.addEventListener('pause', (e) => {
             console.log('on pause', e)
@@ -88,6 +86,24 @@ const Player = ({}) => {
             const song = album?.songs?.find(it => it.id === queuedSong?.songId);
             const duration = song?.duration / 1000
 
+
+            if (navigator.mediaSession) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: song.title,
+                    album: album.name,
+                    artist: artist.name,
+                    artwork: !album.coverHash ? [] : [
+                        {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
+                    ]
+                });
+
+                console.log('setPositionState', duration, audio.currentTime)
+                navigator.mediaSession.setPositionState({
+                    duration,
+                    position: audio.currentTime > duration ? 0 : audio.currentTime,
+                    playbackRate: 1,
+                })
+            }
 
             // if (navigator.mediaSession) {
             //     navigator.mediaSession.metadata = new MediaMetadata({
@@ -165,11 +181,11 @@ const Player = ({}) => {
                             {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
                         ]
                     });
-                    navigator.mediaSession.setPositionState({
-                        duration,
-                        position: audio.currentTime > duration ? 0 : audio.currentTime,
-                        playbackRate: 1,
-                    })
+                    // navigator.mediaSession.setPositionState({
+                    //     duration,
+                    //     position: audio.currentTime > duration ? 0 : audio.currentTime,
+                    //     playbackRate: 1,
+                    // })
                     navigator.mediaSession.setActionHandler('previoustrack', () => {
                         PlayerStore.prev()
                     });
@@ -178,11 +194,13 @@ const Player = ({}) => {
                         PlayerStore.next()
                     });
                     navigator.mediaSession.setActionHandler('stop', () => {
+                        console.log('mediaSession on stop')
                         PlayerStore.setPlaying(false)
                         PlayerStore.setOffset(0)
                         audio.pause()
                     });
                     navigator.mediaSession.setActionHandler('pause', () => {
+                        console.log('mediaSession on pause')
                         PlayerStore.setPlaying(false)
                         PlayerStore.setOffset(audio.currentTime)
                         audio.pause()
@@ -193,6 +211,8 @@ const Player = ({}) => {
                             audio.fastSeek(e.seekTime);
                         else
                             audio.currentTime = e.seekTime;
+
+                        console.log('setPositionState', duration, audio.currentTime)
 
                         navigator.mediaSession.setPositionState({
                             duration,
@@ -232,11 +252,32 @@ const Player = ({}) => {
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log('songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = async (song, data) => {
+            const loadAudio = async (song:Song, data) => {
                 console.log('decoding', song)
+                if (!audio.paused) {
+                    audio.pause()
+                    console.log('paused')
+                }
+
+                if (data.byteLength === 0) {
+                    PlayerStore.next()
+                    return
+                }
+
                 const blob = new Blob([new Uint8Array(data, 0, data.byteLength)])
                 audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+
+                // let sourceElement = document.createElement('source')
+                // audio.childNodes[0] && audio.removeChild(audio.childNodes[0])
+                // audio.appendChild(sourceElement)
+                // sourceElement.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                // sourceElement.type = song.type
+
+
+                // audio.srcObject = blob
+                // audio['type'] = song.type
                 audio.dataset.audioUrl = audioUrl
+                audio.load()
             };
 
             if (!cachedSong) {
@@ -244,7 +285,10 @@ const Player = ({}) => {
                 load(audioUrl, loadAudio, localCache, artist.name, album.name, song.title)
             } else {
                 const sd = await localCache.songData(cachedSong.dataId)
-                loadAudio(cachedSong, sd.data)
+                if (!sd)
+                    load(audioUrl, loadAudio, localCache, artist.name, album.name, song.title)
+                else
+                    loadAudio(cachedSong, sd.data)
             }
         })().catch(console.error)
     }, [localCache, playing, song?.track, audio])

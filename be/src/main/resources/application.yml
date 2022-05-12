@@ -8,7 +8,7 @@ spring:
       leak-detection-threshold: 300000
       connection-timeout: 5000
       validation-timeout: 2000
-    url: jdbc:postgresql://localhost:5432/postgres
+    url: jdbc:postgresql://localhost:5435/postgres
     username: postgres
     password: Pass2020!
   transaction.default-timeout: 600s
@@ -33,4 +33,7 @@ logging.level:
 logging.pattern.console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{5}.%M - %msg%n'
 
 storage:
+  type: local
   path: share
+  subpath: subfolder
+  useIdAsName: false

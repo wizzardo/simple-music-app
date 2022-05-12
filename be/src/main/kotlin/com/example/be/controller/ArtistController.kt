@@ -171,7 +171,7 @@ class ArtistController(
         if (ifNoneMatch != null && ifNoneMatch == "\"" + album.coverHash + "\"")
             return ResponseEntity<InputStreamResource>(HttpStatus.NOT_MODIFIED)
 
-        val data = songService.getAlbumCoverData(artistPath, albumPath)
+        val data = songService.getAlbumCoverData(artist, album)
 
         val headers = HttpHeaders().apply {
             this.contentLength = data.length()

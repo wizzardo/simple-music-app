@@ -52,12 +52,15 @@ class FFmpegService(
         }
 
 //        println(metadata)
+        val track = metadata["track"]?.let {
+            it.substringBefore("/").toInt()
+        }
         return MetaData(
             date = metadata["date"],
             album = metadata["album"],
             artist = metadata["artist"],
             title = metadata["title"],
-            track = metadata["track"]?.toInt(),
+            track = track,
             comment = metadata["comment"],
             duration = metadata["duration"],
             streams = metadata.keys.filter { it.startsWith("stream") }.map { metadata[it]!! },

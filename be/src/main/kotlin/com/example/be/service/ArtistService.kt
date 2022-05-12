@@ -11,9 +11,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ArtistService(
     private val artistRepository: ArtistRepository,
-    private val songService: SongService,
     private val objectMapper: ObjectMapper,
-    private val storageService: StorageService,
+    private val songsStorageService: SongsStorageService,
 ) {
 
     fun getArtists(): List<ArtistDto> {
@@ -33,13 +32,13 @@ class ArtistService(
             val artistPath = to.name.replace("/", " - ")
             to.path = artistPath;
             to.albums.forEach { album ->
-                storageService.createFolder("${to.path}/${album.path}")
+                songsStorageService.createFolder(to, album)
 
                 if (album.coverPath != null) {
-                    storageService.move("${from.path}/${album.path}/${album.coverPath}", "${to.path}/${album.path}/${album.coverPath}")
+                    songsStorageService.moveCover(from, to, album)
                 }
                 album.songs.forEach {
-                    storageService.move("${from.path}/${album.path}/${it.path}", "${to.path}/${album.path}/${it.path}")
+                    songsStorageService.move(from, to, album, it)
                 }
             }
         } else {
@@ -49,20 +48,20 @@ class ArtistService(
                     val albumPath = album.name.replace("/", " - ")
                     album.path = albumPath
 
-                    storageService.createFolder("${to.path}/${album.path}")
+                    songsStorageService.createFolder(to, album)
 
                     if (fromAlbum.coverPath != null) {
-                        storageService.move("${from.path}/${fromAlbum.path}/${album.coverPath}", "${to.path}/${album.path}/${album.coverPath}")
+                        songsStorageService.moveCover(from, fromAlbum, to, album)
                     }
                     album.songs.forEach {
-                        storageService.move("${from.path}/${fromAlbum.path}/${it.path}", "${to.path}/${album.path}/${it.path}")
+                        songsStorageService.move(from, fromAlbum, to, album, it)
                     }
                 } else {
                     album.songs.forEach { song ->
                         val fromSong = fromAlbum.songs.find { it.id == song.id }!!
                         if (song.title != fromSong.title || song.track != fromSong.track) {
                             song.path = "${song.track} - ${song.title}.${fromSong.path.substringAfterLast(".")}"
-                            storageService.move("${from.path}/${fromAlbum.path}/${fromSong.path}", "${to.path}/${album.path}/${song.path}")
+                            songsStorageService.move(from, fromAlbum, fromSong, to, album, song)
                         }
                     }
                 }
@@ -86,13 +85,7 @@ class ArtistService(
             if (fromAlbum.id in albums) {
                 fromAlbum.songs.forEach loop@{
                     songs.add(it)
-                    val toFile = "${item.path}/${album.path}/${it.path}"
-                    val fromFile = "${item.path}/${fromAlbum.path}/${it.path}"
-
-                    if (toFile == fromFile)
-                        return@loop
-
-                    storageService.move(fromFile, toFile)
+                    songsStorageService.move(item, fromAlbum, it, item, album, it)
                 }
             } else {
                 mergedAlbums.add(fromAlbum)
@@ -106,19 +99,13 @@ class ArtistService(
 
     @Transactional
     fun move(fromArtist: ArtistDto, toArtist: ArtistDto, album: AlbumDto) {
-        storageService.createFolder("${toArtist.path}/${album.path}")
+        songsStorageService.createFolder(toArtist, album)
 
         if (album.coverPath != null) {
-            storageService.move("${fromArtist.path}/${album.path}/${album.coverPath}", "${toArtist.path}/${album.path}/${album.coverPath}")
+            songsStorageService.moveCover(fromArtist, album, toArtist, album)
         }
         album.songs.forEach loop@{
-            val toFile = "${toArtist.path}/${album.path}/${it.path}"
-            val fromFile = "${fromArtist.path}/${album.path}/${it.path}"
-
-            if (toFile == fromFile)
-                return@loop
-
-            storageService.move(fromFile, toFile)
+            songsStorageService.move(fromArtist, album, it, toArtist, album, it)
         }
 
         fromArtist.albums -= album
@@ -129,14 +116,14 @@ class ArtistService(
 
     fun delete(item: ArtistDto) {
         artistRepository.deleteById(item.id)
-        storageService.delete(item.path)
+        songsStorageService.delete(item)
     }
 
     fun delete(artist: ArtistDto, albumId: String) {
         val album = artist.albums.find { it.id == albumId }!!
         artist.albums -= album
         artistRepository.update(artist.id, artist, objectMapper)
-        storageService.delete(artist.path + "/" + album.path)
+        songsStorageService.delete(artist,album)
     }
 
     fun delete(artist: ArtistDto, albumId: String, songId: String) {
@@ -144,6 +131,6 @@ class ArtistService(
         val song = album.songs.find { it.id == songId }!!
         album.songs -= song
         artistRepository.update(artist.id, artist, objectMapper)
-        storageService.delete("${artist.path}/${album.path}/${song.path}")
+        songsStorageService.delete(artist,album,song,)
     }
 }

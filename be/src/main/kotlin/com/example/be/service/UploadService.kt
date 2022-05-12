@@ -6,7 +6,6 @@ import com.example.be.db.dto.toArtistDto
 import com.example.be.db.generated.tables.pojos.Artist
 import com.example.be.db.repository.ArtistRepository
 import com.example.be.service.FFmpegService.MetaData
-import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.security.MD5
@@ -21,7 +20,7 @@ import java.time.LocalDateTime
 
 @Service
 class UploadService(
-    private val storageService: StorageService,
+    private val songsStorageService: SongsStorageService,
     private val objectMapper: ObjectMapper,
     private val ffmpegService: FFmpegService,
     private val artistRepository: ArtistRepository,
@@ -48,7 +47,7 @@ class UploadService(
                 ?: metaData.artist?.replace("/", " - ")
                 ?: throw IllegalArgumentException("artist tag is empty!")
 
-            val album = albumId?.let { artist?.albums?.find { it.id == albumId } }?.path
+            val albumPath = albumId?.let { artist?.albums?.find { it.id == albumId } }?.path
                 ?: metaData.album?.replace("/", " - ")
                 ?: throw IllegalArgumentException("album tag is empty!")
 
@@ -58,8 +57,6 @@ class UploadService(
             val track = metaData.track
 
             val fileName = "$track - $title.${tempFile.extension}"
-            storageService.createFolder("$artistPath/$album")
-            storageService.put("$artistPath/$album/${fileName}", tempFile)
 
             var tries = 0;
             while (true) {
@@ -67,13 +64,45 @@ class UploadService(
                     tries++;
                     if (artist == null)
                         artist = getOrCreateArtist(metaData, artistPath)
-                    if (!addSong(artist, metaData, album, fileName, tempFile))
+                    val added = addSong(artist, metaData, albumPath, fileName, tempFile)
+                    if (added == null)
                         continue
+
+                    songsStorageService.put(artist, added.album, added.song, tempFile)
+
                     break
                 } catch (e: SQLException) {
                     e.printStackTrace()
                     if (tries >= 5)
                         throw IllegalStateException(e)
+                }
+            }
+
+            artist = artistService.getArtist(artist!!.id)
+            val album = artist?.albums?.find { it.path == albumPath }!!
+            if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
+                try {
+                    val imageBytes = ffmpegService.extractCoverArt(tempFile)
+                    album.coverPath = "cover.jpg"
+                    album.coverHash = MD5.create().update(imageBytes).toString()
+                    songsStorageService.putCover(artist, album, imageBytes)
+                    while (true) {
+                        try {
+                            tries++;
+                            val updated = artistRepository.update(artist.id, artist, objectMapper)
+                            if (updated != 1)
+                                continue
+
+
+                            break
+                        } catch (e: SQLException) {
+                            e.printStackTrace()
+                            if (tries >= 5)
+                                throw IllegalStateException(e)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         } finally {
@@ -83,32 +112,25 @@ class UploadService(
         return ResponseEntity.noContent().build()
     }
 
+    data class AddResult(val artist: ArtistDto, val album: AlbumDto, val song: AlbumDto.Song)
+
     @Transactional
-    fun addSong(artist: ArtistDto, metaData: MetaData, albumPath: String, fileName: String, audio: File): Boolean {
+    fun addSong(artist: ArtistDto, metaData: MetaData, albumPath: String, fileName: String, audio: File): AddResult? {
         val album = artist.albums.find { it.path == albumPath }
             ?: createAlbum(metaData, albumPath).also { artist.albums += it }
         val song = createSong(metaData, fileName)
         album.songs += song
 
-        if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
-            try {
-                val imageBytes = ffmpegService.extractCoverArt(audio)
-                storageService.put("${artist.path}/${album.path}/cover.jpg", imageBytes)
-                album.coverPath = "cover.jpg"
-                album.coverHash = MD5.create().update(imageBytes).toString()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
         val updated = artistRepository.update(artist.id, artist, objectMapper)
-        if (updated == 1) {
+        val added = updated == 1
+        if (added) {
             println("added song ${song.track} ${song.title} to ${album.name}:")
             album.songs.forEach { println("  ${it.track} ${it.title}") }
         } else {
             println("retrying update")
         }
-        return updated == 1
+
+        return if (added) AddResult(artist, album, song) else null
     }
 
     @Transactional
@@ -144,6 +166,7 @@ class UploadService(
         metaData.comment?.let { this.comment = it }
         metaData.duration?.let { this.duration = getMillis(it) }
         metaData.streams.let { this.streams = it }
+        format = FFmpegService.AudioFormat.valueOf(relativePath.substringAfterLast('.').uppercase())
         path = relativePath
     }
 
@@ -155,12 +178,11 @@ class UploadService(
         return (ms.toInt() + ((h * 60 + m) * 60 + s) * 1000)
     }
 
-    fun uploadCoverArt(item: ArtistDto, album: AlbumDto, file: MultipartFile): ArtistDto {
-        val cover = "cover.jpg"
+    fun uploadCoverArt(artist: ArtistDto, album: AlbumDto, file: MultipartFile): ArtistDto {
         val imageBytes = ImageTools.saveJPGtoBytes(ImageTools.read(file.bytes), 90)
-        storageService.put("${item.path}/${album.path}/cover.jpg", imageBytes)
-        album.coverPath = cover
+        album.coverPath = "cover.jpg"
         album.coverHash = MD5.create().update(imageBytes).toString()
-        return artistService.update(item.id, item, item)
+        songsStorageService.putCover(artist, album, imageBytes)
+        return artistService.update(artist.id, artist, artist)
     }
 }

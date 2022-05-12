@@ -12,6 +12,7 @@ import org.jooq.JSONB
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.File
+import java.io.InputStream
 import java.time.LocalDateTime
 
 @Component
@@ -99,4 +100,7 @@ class StorageService(
 
     override fun move(file: FileInfo, destination: String) = storage.move(file, withSubPath(destination))
 
+    override fun getStream(path: String): InputStream = storage.getStream(withSubPath(path))
+
+    override fun getStream(file: FileInfo) = storage.getStream(file)
 }

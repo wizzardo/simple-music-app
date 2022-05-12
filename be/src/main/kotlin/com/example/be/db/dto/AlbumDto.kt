@@ -1,5 +1,7 @@
 package com.example.be.db.dto
 
+import com.example.be.service.FFmpegService
+
 class AlbumDto(
     var id: String = "",
     var path: String = "",
@@ -17,7 +19,8 @@ class AlbumDto(
         var comment: String = "",
         var duration: Int = 0,
         var streams: List<String> = emptyList(),
-        var path: String = ""
+        var path: String = "",
+        var format: FFmpegService.AudioFormat = FFmpegService.AudioFormat.FLAC,
     ) {
         override fun toString(): String {
             return "Song(track=$track, title='$title', comment='$comment', duration=$duration, streams='$streams', path='$path')"

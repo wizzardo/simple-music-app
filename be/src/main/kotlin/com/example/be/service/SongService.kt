@@ -17,14 +17,14 @@ import java.util.concurrent.TimeUnit
 class SongService(
     private val artistRepository: ArtistRepository,
     private val objectMapper: ObjectMapper,
-    private val storageService: StorageService,
+    private val songsStorageService: SongsStorageService,
 ) {
 
     fun getSongData(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song): TempFileInputStream {
         val tempFile = File.createTempFile("song", song.path)
         var delete = true
         try {
-            storageService.getStream("${artist.path}/${album.path}/${song.path}").use { inputStream ->
+            songsStorageService.getStream(artist, album, song).use { inputStream ->
                 FileOutputStream(tempFile).use { outputStream ->
                     IOTools.copy(inputStream, outputStream)
                 }
@@ -57,17 +57,17 @@ class SongService(
     }
 
     fun copySongData(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, tempFile: File) {
-        storageService.getStream("${artist.path}/${album.path}/${song.path}").use { inputStream ->
+        songsStorageService.getStream(artist, album, song).use { inputStream ->
             FileOutputStream(tempFile).use { outputStream ->
                 IOTools.copy(inputStream, outputStream)
             }
         }
     }
 
-    fun getAlbumCoverData(artistPath: String, albumPath: String): TempFileInputStream {
+    fun getAlbumCoverData(artist: ArtistDto, album: AlbumDto): TempFileInputStream {
         val tempFile = File.createTempFile("cover", ".jpg")
         var delete = true
-        storageService.getStream("${artistPath}/${albumPath}/cover.jpg").use { inputStream ->
+        songsStorageService.getCoverAsStream(artist, album).use { inputStream ->
             FileOutputStream(tempFile).use { outputStream ->
                 IOTools.copy(inputStream, outputStream)
             }

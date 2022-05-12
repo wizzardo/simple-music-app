@@ -75,29 +75,8 @@ const Library = ({artistId, album}) => {
     }
 
     return <Scrollable className={css`
-      margin: ${isMobile ? '0 -20px' : '0'};
       max-height: ${queue.length ? windowSize.height - 120 - 40 : windowSize.height - 40}px !important;
     `}>
-        {window.location.pathname.length > 1 && <Button className={classNames('', css`
-          position: absolute;
-          top: 10px;
-          left: 10px;
-
-          .MaterialIcon {
-            font-size: 20px;
-            color: gray;
-          }
-        `)} flat round onClick={e => {
-            let pathname = window.location.pathname;
-            pathname = pathname.substring(0, pathname.lastIndexOf('/'))
-            if (!pathname)
-                pathname = '/'
-            pushLocation(pathname)
-        }}>
-            <MaterialIcon icon={'chevron_left'}/>
-        </Button>}
-
-
         <Route path={"/"}>
             <ListArtists cardWidth={albumCardWidth}/>
         </Route>
@@ -244,6 +223,8 @@ const ListSongs = ({artistId, albumName}) => {
         <FlexColumn className={css`
           flex-basis: 1px;
           flex-grow: 1;
+          padding-left: 20px;
+          padding-right: 20px;
         `}>
             <FlexRow className={css`justify-content: space-between;`}>
                 <FlexColumn>
