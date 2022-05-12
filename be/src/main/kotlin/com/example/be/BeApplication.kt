@@ -21,6 +21,7 @@ class BeApplication {
                     .allowedOrigins(
                         "http://localhost:3000",
                         "http://localhost:8080",
+                        "http://192.168.0.147:3000",
                     )
             }
         }
@@ -32,6 +33,7 @@ class BeApplication {
             override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
                 registry.addResourceHandler("/static/**").addResourceLocations("classpath:/public/static/");
                 registry.addResourceHandler("/sw.js").addResourceLocations("classpath:/public/sw.js");
+                registry.addResourceHandler("/manifest.json").addResourceLocations("classpath:/public/manifest.json");
             }
         }
     }

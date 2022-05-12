@@ -157,6 +157,9 @@ class UploadService(
         metaData.date?.let { this.date = it }
         metaData.album?.let { this.name = it }
         this.songs = emptyList()
+        if (songsStorageService.encryption) {
+            coverEncryptionKey = songsStorageService.createEncryptionKey()
+        }
     }
 
     private fun createSong(metaData: MetaData, relativePath: String): AlbumDto.Song = AlbumDto.Song().apply {
@@ -168,6 +171,9 @@ class UploadService(
         metaData.streams.let { this.streams = it }
         format = FFmpegService.AudioFormat.valueOf(relativePath.substringAfterLast('.').uppercase())
         path = relativePath
+        if (songsStorageService.encryption) {
+            encryptionKey = songsStorageService.createEncryptionKey()
+        }
     }
 
     private fun getMillis(time: String): Int {

@@ -6,9 +6,10 @@ import com.example.be.misc.TempFileInputStream
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.misc.Stopwatch
+import com.wizzardo.tools.security.MD5
 import org.springframework.stereotype.Service
 import java.io.File
-import java.nio.file.Files
+import java.io.FileInputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern

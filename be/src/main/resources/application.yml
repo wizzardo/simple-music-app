@@ -37,3 +37,4 @@ storage:
   path: share
   subpath: subfolder
   useIdAsName: false
+  encryption: false

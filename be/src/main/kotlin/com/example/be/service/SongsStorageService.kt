@@ -2,17 +2,35 @@ package com.example.be.service
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
+import com.wizzardo.tools.security.AES
+import com.wizzardo.tools.security.Base64
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.InputStream
+import java.security.spec.AlgorithmParameterSpec
+import javax.crypto.Cipher
+import javax.crypto.CipherInputStream
+import javax.crypto.KeyGenerator
+import javax.crypto.spec.IvParameterSpec
 
 @Component
 class SongsStorageService(
     @Value("\${storage.useIdAsName:false}")
     private val useIdAsName: Boolean,
+    @Value("\${storage.encryption:false}")
+    val encryption: Boolean,
     val storageService: StorageService,
 ) {
+
+    private val keyGenerator: KeyGenerator
+
+    init {
+        keyGenerator = KeyGenerator.getInstance("AES")
+        keyGenerator.init(128)
+    }
 
     private fun ArtistDto.path(): String {
         if (useIdAsName)
@@ -28,13 +46,13 @@ class SongsStorageService(
 
     private fun AlbumDto.coverPath(): String? {
         if (useIdAsName)
-            return this.id
+            return this.id + ".bin"
         return this.coverPath
     }
 
     private fun AlbumDto.Song.path(): String {
         if (useIdAsName)
-            return this.id
+            return this.id + ".bin"
         return this.path
     }
 
@@ -75,18 +93,63 @@ class SongsStorageService(
     }
 
     fun getStream(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song): InputStream {
-        return storageService.getStream("${artist.path()}/${album.path()}/${song.path()}")
+        val stream = storageService.getStream("${artist.path()}/${album.path()}/${song.path()}")
+        if (song.encryptionKey.isEmpty())
+            return stream
+
+        return decrypt(song.encryptionKey, stream)
     }
 
     fun getCoverAsStream(artist: ArtistDto, album: AlbumDto): InputStream {
-        return storageService.getStream("${artist.path()}/${album.path()}/${album.coverPath()}")
+        val stream = storageService.getStream("${artist.path()}/${album.path()}/${album.coverPath()}")
+        if (album.coverEncryptionKey.isNullOrEmpty())
+            return stream
+
+        return decrypt(album.coverEncryptionKey!!, stream)
     }
 
     fun put(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, file: File) {
-        storageService.put("${artist.path()}/${album.path()}/${song.path()}", file)
+        if (song.encryptionKey.isNotEmpty()) {
+            val aes = AES(Base64.decode(song.encryptionKey, true))
+            val tempFile = File.createTempFile("enc", "file")
+
+            try {
+                FileInputStream(file).use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        aes.encrypt(input, output)
+                    }
+                }
+
+                storageService.put("${artist.path()}/${album.path()}/${song.path()}", tempFile)
+            } finally {
+                tempFile.delete()
+            }
+        } else
+            storageService.put("${artist.path()}/${album.path()}/${song.path()}", file)
     }
 
     fun putCover(artist: ArtistDto, album: AlbumDto, bytes: ByteArray) {
-        storageService.put("${artist.path()}/${album.path()}/${album.coverPath()}", bytes)
+        if (!album.coverEncryptionKey.isNullOrEmpty()) {
+            val aes = AES(Base64.decodeFast(album.coverEncryptionKey, true))
+            val encrypted = aes.encrypt(bytes)
+            storageService.put("${artist.path()}/${album.path()}/${album.coverPath()}", encrypted)
+        } else
+            storageService.put("${artist.path()}/${album.path()}/${album.coverPath()}", bytes)
     }
+
+    @Synchronized
+    fun createEncryptionKey(): String {
+        val key = keyGenerator.generateKey()
+        return Base64.encodeToString(key.encoded, false, true)
+    }
+
+    private fun decrypt(encryptionKey: String, inputStream: InputStream): CipherInputStream {
+        val key = AES.generateKey(Base64.decode(encryptionKey, true))
+        val iv = key.encoded
+        val paramSpec: AlgorithmParameterSpec = IvParameterSpec(iv)
+        val dcipher: Cipher = Cipher.getInstance("AES/CFB8/NoPadding")
+        dcipher.init(Cipher.DECRYPT_MODE, key, paramSpec)
+        return CipherInputStream(inputStream, dcipher)
+    }
+
 }

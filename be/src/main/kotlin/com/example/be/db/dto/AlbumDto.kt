@@ -10,6 +10,7 @@ class AlbumDto(
     var songs: List<Song> = emptyList(),
     var coverPath: String? = null,
     var coverHash: String? = null,
+    var coverEncryptionKey: String? = null,
 ) {
 
     class Song(
@@ -21,6 +22,7 @@ class AlbumDto(
         var streams: List<String> = emptyList(),
         var path: String = "",
         var format: FFmpegService.AudioFormat = FFmpegService.AudioFormat.FLAC,
+        var encryptionKey: String = "",
     ) {
         override fun toString(): String {
             return "Song(track=$track, title='$title', comment='$comment', duration=$duration, streams='$streams', path='$path')"
