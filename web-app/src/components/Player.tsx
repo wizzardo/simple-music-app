@@ -14,6 +14,7 @@ import * as PlayerStore from "../stores/PlayerStore";
 import * as SettingsStore from "../stores/SettingsStore";
 import NetworkService from "../services/NetworkService";
 import WindowActiveStore from "../stores/WindowActiveStore";
+import {useIsSafari} from "../utils/Hooks";
 
 
 const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string) => {
@@ -50,7 +51,7 @@ const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album
 
 const Player = ({}) => {
     const localCache = useLocalCache();
-
+    const isSafari = useIsSafari()
     const artistsStore = useStore(ArtistsStore.store)
     const {format, bitrate} = useStore(SettingsStore.store)
     const {playing, position, queue, offset, volume} = useStore(PlayerStore.store)
@@ -93,7 +94,7 @@ const Player = ({}) => {
                     album: album.name,
                     artist: artist.name,
                     artwork: !album.coverHash ? [] : [
-                        {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
+                        {src: NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath, type: 'image/jpeg'}
                     ]
                 });
 
@@ -178,7 +179,7 @@ const Player = ({}) => {
                         album: album.name,
                         artist: artist.name,
                         artwork: !album.coverHash ? [] : [
-                            {src: NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath, type: 'image/jpeg'}
+                            {src: NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath, type: 'image/jpeg'}
                         ]
                     });
                     // navigator.mediaSession.setPositionState({
@@ -242,7 +243,7 @@ const Player = ({}) => {
             if (!audio)
                 return
 
-            const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate
+            const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + song.id + '/' + format + '/' + bitrate
             if (audio && audio.dataset.audioUrl === audioUrl) {
                 return
             }
@@ -252,7 +253,7 @@ const Player = ({}) => {
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log('songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = async (song:Song, data) => {
+            const loadAudio = async (song: Song, data) => {
                 console.log('decoding', song)
                 if (!audio.paused) {
                     audio.pause()
@@ -265,14 +266,15 @@ const Player = ({}) => {
                 }
 
                 const blob = new Blob([new Uint8Array(data, 0, data.byteLength)])
-                audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
-
-                // let sourceElement = document.createElement('source')
-                // audio.childNodes[0] && audio.removeChild(audio.childNodes[0])
-                // audio.appendChild(sourceElement)
-                // sourceElement.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
-                // sourceElement.type = song.type
-
+                if (isSafari) {
+                    let sourceElement = document.createElement('source')
+                    audio.childNodes[0] && audio.removeChild(audio.childNodes[0])
+                    audio.appendChild(sourceElement)
+                    sourceElement.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                    sourceElement.type = song.type
+                } else {
+                    audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                }
 
                 // audio.srcObject = blob
                 // audio['type'] = song.type

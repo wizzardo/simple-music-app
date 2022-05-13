@@ -289,7 +289,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                     sortable: false,
                     formatter: ((it, item) => {
                         if (it)
-                            return <Cover src={NetworkService.baseurl + '/artists/' + artist?.path + '/' + item.path + '/' + it} alt={'cover'}/>;
+                            return <Cover src={NetworkService.baseurl + '/artists/' + artist?.id + '/' + item.id + '/' + it} alt={'cover'}/>;
                         else
                             return <MaterialIcon className={css`
                               font-size: 50px;
@@ -373,7 +373,7 @@ const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
                 NetworkService.uploadCoverArt({file, artistId: artist.id, albumId: album.id})
                     .then(ArtistsStore.set)
             }}>
-                {album?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath} alt={'cover'}/>}
+                {album?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath} alt={'cover'}/>}
                 {!album?.coverPath && <MaterialIcon className={css`
                   font-size: 50px;
                 `} icon={'album'}/>}

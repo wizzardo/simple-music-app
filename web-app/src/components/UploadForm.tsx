@@ -66,8 +66,8 @@ export const UploadForm = ({}) => {
                         total: e.total
                     })
 
-                    if (e.total - e.loaded === 0)
-                        setTimeout(startUploadingNextFile, 100)
+                    // if (e.total - e.loaded === 0)
+                    //     setTimeout(startUploadingNextFile, 100)
                 }
                 , 16)
         }).then(value => {
@@ -75,6 +75,7 @@ export const UploadForm = ({}) => {
                 progress: 100,
                 finished: true
             })
+            startUploadingNextFile()
         }).catch(reason => {
             console.log('upload failed for ', next)
             update({error: true, uploading: false, finished: false})

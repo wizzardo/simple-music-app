@@ -85,16 +85,19 @@ const createMultipart = <R>(template: string) => {
 export default {
     baseurl,
     //generated endpoints start
-    getAlbumCover: createGET<number[]>('/artists/{artistPath}/{albumPath}/cover.jpg'),
+    getAlbumCover: createGET('/artists/{artistIdOrPath}/{albumIdOrPath}/cover.jpg'),
     getArtist: createGET<ArtistDto>('/artists/{id}'),
     getArtists: createGET<Array<ArtistDto>>('/artists'),
-    getSong: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}'),
-    getSongConverted: createGET<number[]>('/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}'),
+    getSong: createGET('/artists/{artistId}/{albumName}/{trackNumber}'),
+    getSongConverted: createGET('/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}'),
     mergeAlbums: createPOST<ArtistDto, MergeAlbumsRequest>('/artists/{artistId}/{intoAlbumId}'),
     moveAlbum: createPOST('/artists/{artistId}/{albumId}/{toArtistId}'),
     updateArtist: createPOST<ArtistDto, ArtistDto>('/artists/{id}'),
     uploadCoverArt: createMultipart<ArtistDto>('/artists/{artistId}/{albumId}/cover'),
+    deleteAlbum: createDELETE<ArtistDto>('/artists/{artistId}/{albumId}'),
     deleteArtist: createDELETE<ArtistDto>('/artists/{id}'),
+    deleteSong: createDELETE<ArtistDto>('/artists/{artistId}/{albumId}/{songId}'),
+
 
 
     upload: createMultipart<Object>('/upload'),
@@ -103,38 +106,48 @@ export default {
 
 //generated types start
 export interface MergeAlbumsRequest {
-    artistId: number,
-    intoAlbumId: string,
-    albums: Array<string>,
+	artistId: number,
+	intoAlbumId: string,
+	albums: Array<string>,
 }
 
 export interface ArtistDto {
-    id: number,
-    created: string,
-    updated: string,
-    name: string,
-    path: string,
-    albums: Array<AlbumDto>,
+	id: number,
+	created: string,
+	updated: string,
+	name: string,
+	path: string,
+	albums: Array<AlbumDto>,
 }
 
 export interface AlbumDto {
-    id: string,
-    path: string,
-    date: string,
-    name: string,
-    songs: Array<AlbumDtoSong>,
-    coverPath: string | null,
-    coverHash: string | null,
+	id: string,
+	path: string,
+	date: string,
+	name: string,
+	songs: Array<AlbumDtoSong>,
+	coverPath: string | null,
+	coverHash: string | null,
+	coverEncryptionKey: string | null,
 }
 
 export interface AlbumDtoSong {
-    id: string,
-    track: number,
-    title: string,
-    comment: string,
-    duration: number,
-    streams: Array<string>,
-    path: string,
+	id: string,
+	track: number,
+	title: string,
+	comment: string,
+	duration: number,
+	streams: Array<string>,
+	path: string,
+	format: AudioFormat,
+	encryptionKey: string,
 }
 
+export enum AudioFormat {
+	MP3 = 'MP3',
+	AAC = 'AAC',
+	OGG = 'OGG',
+	OPUS = 'OPUS',
+	FLAC = 'FLAC',
+}
 //generated types end

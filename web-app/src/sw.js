@@ -9,7 +9,7 @@ self.addEventListener('install', event => {
             '/'
         ]);
     })());
-    // self.skipWaiting();
+    self.skipWaiting();
 });
 
 async function fetchAndCache(request) {

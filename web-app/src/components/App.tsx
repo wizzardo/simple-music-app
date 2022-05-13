@@ -27,7 +27,7 @@ export default () => {
     const artist = artistsStore.map[queuedSong?.artistId];
     const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
     const coverBackground = playing && album && css`
-      background-image: url('${NetworkService.baseurl}/artists/${artist.path}/${album.path}/${album.coverPath}');
+      background-image: url('${NetworkService.baseurl}/artists/${artist.id}/${album.id}/${album.coverPath}');
     `;
 
     const windowSize = useWindowSize();
@@ -52,6 +52,7 @@ export default () => {
 
               background: rgba(255, 255, 255, 0.45);
               backdrop-filter: blur(40px);
+              -webkit-backdrop-filter: blur(40px);
             `}>
                 <Route path={'/*'}>
                     {window.location.pathname.length > 1 && <Button className={classNames('', css`

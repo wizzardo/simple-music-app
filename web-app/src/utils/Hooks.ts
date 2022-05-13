@@ -13,3 +13,8 @@ export const useWindowSize = () => {
     }, [])
     return windowsSize
 }
+
+export const useIsSafari = () => {
+    const [isSafari] = useState(() => /^((?!chrome|android).)*safari/i.test(navigator.userAgent))
+    return isSafari
+}

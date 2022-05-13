@@ -75,6 +75,7 @@ const Library = ({artistId, album}) => {
     }
 
     return <Scrollable className={css`
+      max-width: 100%;
       max-height: ${queue.length ? windowSize.height - 120 - 40 : windowSize.height - 40}px !important;
     `}>
         <Route path={"/"}>
@@ -105,7 +106,7 @@ const ListArtists = ({cardWidth}) => {
         `} onClick={e => {
             pushLocation(`/${it.artistId}/${it.name}`)
         }}>
-            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artistsStore.map[it.artistId].path + '/' + it.path + '/' + it.coverPath} alt={it.name}/>}
+            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artistsStore.map[it.artistId].id + '/' + it.id + '/' + it.coverPath} alt={it.name}/>}
             {!it?.coverPath && <MaterialIcon className={css`
               font-size: 50px;
             `} icon={'album'}/>}
@@ -132,7 +133,7 @@ const ListAlbums = ({artistId, cardWidth}) => {
         `} onClick={e => {
             pushLocation(`/${artistId}/${it.name}`)
         }}>
-            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.path + '/' + it.path + '/' + it.coverPath} alt={it.name}/>}
+            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.id + '/' + it.id + '/' + it.coverPath} alt={it.name}/>}
             {!it?.coverPath && <MaterialIcon className={css`
               font-size: 50px;
             `} icon={'album'}/>}
@@ -174,7 +175,7 @@ const ListSongs = ({artistId, albumName}) => {
         cache && (async () => {
             let notReady: DownloadTask[] = []
             for (let i = 0; i < songs.length; i++) {
-                const url = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + songs[i].track + '/' + format + '/' + bitrate
+                const url = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + songs[i].id + '/' + format + '/' + bitrate
                 const cachedSong = await cache.songByUrl(url)
                 if (!cachedSong) {
                     notReady.push({
@@ -212,7 +213,7 @@ const ListSongs = ({artistId, albumName}) => {
               margin-right: auto;
               margin-bottom: 20px;
             `)}
-            src={NetworkService.baseurl + '/artists/' + artist.path + '/' + album.path + '/' + album.coverPath} alt={album.name}
+            src={NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath} alt={album.name}
         />}
         {!album.coverPath && <MaterialIcon className={css`
           font-size: 50px;
@@ -277,6 +278,7 @@ const ListSongs = ({artistId, albumName}) => {
             <span className={css`height: 25px;`} ref={refSeparatorSongs}/>
 
             <Scrollable scrollBarMode={SCROLLBAR_MODE_VISIBLE} className={css`
+              max-width: 100%;
               max-height: ${refSeparatorSongs.current ? (window.innerHeight - 145 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px'};
             `}>
                 {songs.map(it => <Song key={it.id} artist={artist} album={album} song={it}/>)}
@@ -298,7 +300,7 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
 
     useEffect(() => {
         cache && (async () => {
-            const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate
+            const audioUrl = NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + song.id + '/' + format + '/' + bitrate
             const cachedSong = await cache.songByUrl(audioUrl)
             setCachedSong(cachedSong)
         })()
@@ -352,7 +354,7 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
             `}
             onClick={e => {
                 DownloadQueueStore.download(
-                    NetworkService.baseurl + '/artists/' + artist.id + '/' + album.name + '/' + song.track + '/' + format + '/' + bitrate,
+                    NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + song.id + '/' + format + '/' + bitrate,
                     artist.name,
                     album.name,
                     song.title,
