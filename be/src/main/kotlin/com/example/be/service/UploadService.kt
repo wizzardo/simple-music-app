@@ -37,7 +37,8 @@ class UploadService(
         artistId: Long?,
         albumId: String?
     ): ResponseEntity<Any> {
-        val tempFile = File("/tmp/", file.originalFilename ?: file.name)
+        val ext = file.originalFilename?.substringAfterLast('.') ?: "bin"
+        val tempFile = File.createTempFile("upload", ".$ext")
         try {
             file.transferTo(tempFile)
             val metaData: MetaData = ffmpegService.getMetaData(tempFile)
@@ -78,22 +79,25 @@ class UploadService(
                 }
             }
 
-            artist = artistService.getArtist(artist!!.id)
             val album = artist?.albums?.find { it.path == albumPath }!!
             if (album.coverPath == null && metaData.streams.any { it.startsWith("Video:") }) {
                 try {
                     val imageBytes = ffmpegService.extractCoverArt(tempFile)
-                    album.coverPath = "cover.jpg"
-                    album.coverHash = MD5.create().update(imageBytes).toString()
-                    songsStorageService.putCover(artist, album, imageBytes)
                     while (true) {
                         try {
+                            val artist = artistService.getArtist(artist!!.id)!!
+                            val album = artist?.albums?.find { it.path == albumPath }!!
+                            if (album.coverPath != null)
+                                break
+
                             tries++;
+                            album.coverPath = "cover.jpg"
+                            album.coverHash = MD5.create().update(imageBytes).toString()
                             val updated = artistRepository.update(artist.id, artist, objectMapper)
                             if (updated != 1)
                                 continue
 
-
+                            songsStorageService.putCover(artist, album, imageBytes)
                             break
                         } catch (e: SQLException) {
                             e.printStackTrace()
