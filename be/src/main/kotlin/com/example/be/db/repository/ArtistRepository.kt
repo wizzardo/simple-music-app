@@ -28,6 +28,14 @@ open class ArtistRepository(configuration: Configuration) : ArtistDao(configurat
             .fetchOne(mapper())
     }
 
+    fun findByIdOrPath(path: String): Artist? {
+        return ctx().selectFrom(ARTIST)
+            .where(ARTIST.ID.eq(path.toLongOrNull()))
+            .or(ARTIST.PATH.eq(path))
+            .limit(1)
+            .fetchOne(mapper())
+    }
+
     fun updateAlbums(artist: Artist, albums: List<AlbumDto>, objectMapper: ObjectMapper): Int {
 //        println("albums: $albums")
         return ctx().update(ARTIST)

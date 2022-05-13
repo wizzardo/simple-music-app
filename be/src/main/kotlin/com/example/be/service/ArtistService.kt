@@ -75,6 +75,10 @@ class ArtistService(
         return artistRepository.findByPath(artistPath)?.toArtistDto(objectMapper)
     }
 
+    fun getArtistByIdOrPath(idOrPath: String): ArtistDto? {
+        return artistRepository.findByIdOrPath(idOrPath)?.toArtistDto(objectMapper)
+    }
+
     fun mergeAlbums(item: ArtistDto, intoAlbumId: String, albums: List<String>): ArtistDto {
         val album = item.albums.find { it.id == intoAlbumId } ?: throw IllegalArgumentException("Cannot find album with id ${intoAlbumId}")
         val songs: MutableList<AlbumDto.Song> = ArrayList(album.songs)
@@ -123,7 +127,7 @@ class ArtistService(
         val album = artist.albums.find { it.id == albumId }!!
         artist.albums -= album
         artistRepository.update(artist.id, artist, objectMapper)
-        songsStorageService.delete(artist,album)
+        songsStorageService.delete(artist, album)
     }
 
     fun delete(artist: ArtistDto, albumId: String, songId: String) {
@@ -131,6 +135,6 @@ class ArtistService(
         val song = album.songs.find { it.id == songId }!!
         album.songs -= song
         artistRepository.update(artist.id, artist, objectMapper)
-        songsStorageService.delete(artist,album,song,)
+        songsStorageService.delete(artist, album, song)
     }
 }

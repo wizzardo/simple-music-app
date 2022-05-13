@@ -51,9 +51,8 @@ class SongService(
         return album
     }
 
-    fun getAlbum(artist: ArtistDto, albumPath: String): AlbumDto {
-        val album: AlbumDto = artist.albums.find { album -> album.path == albumPath } ?: throw IllegalArgumentException("can't find album with name: $albumPath")
-        return album
+    fun getAlbum(artist: ArtistDto, albumIdOrPath: String): AlbumDto? {
+        return artist.albums.find { album -> album.path == albumIdOrPath || album.id == albumIdOrPath }
     }
 
     fun copySongData(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, tempFile: File) {

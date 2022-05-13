@@ -138,17 +138,23 @@ class ArtistController(
         return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
     }
 
-    @GetMapping(value = ["/artists/{artistId}/{albumName}/{trackNumber}/{format}/{bitrate}"], produces = ["*/*"])
+    @GetMapping(value = ["/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}"], produces = ["*/*"])
     fun getSongConverted(
         @PathVariable artistId: Long,
-        @PathVariable albumName: String,
-        @PathVariable trackNumber: Int,
+        @PathVariable albumIdOrName: String,
+        @PathVariable songIdOrTrackNumber: String,
         @PathVariable format: FFmpegService.AudioFormat,
         @PathVariable bitrate: Int,
     ): ResponseEntity<InputStreamResource> {
-        val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
-        val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
-        val song: AlbumDto.Song = album.songs.find { song -> song.track == trackNumber } ?: return ResponseEntity.notFound().build()
+        val artist: ArtistDto = artistService.getArtist(artistId)
+            ?: return ResponseEntity.notFound().build()
+        val album: AlbumDto = artist.albums.find { album -> album.name == albumIdOrName || album.id == albumIdOrName || album.path == albumIdOrName }
+            ?: return ResponseEntity.notFound().build()
+
+        val trackNumber: Int = songIdOrTrackNumber.toIntOrNull() ?: -1
+        val song: AlbumDto.Song = album.songs.find { song -> song.id == songIdOrTrackNumber || song.track == trackNumber }
+            ?: return ResponseEntity.notFound().build()
+
         val data = ffmpegService.convert(artist, album, song, format, bitrate)
         val headers = HttpHeaders().apply {
             this.contentLength = data.length()
@@ -157,14 +163,14 @@ class ArtistController(
         return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
     }
 
-    @GetMapping(value = ["/artists/{artistPath}/{albumPath}/cover.jpg"], produces = ["image/jpeg"])
+    @GetMapping(value = ["/artists/{artistIdOrPath}/{albumIdOrPath}/cover.jpg"], produces = ["image/jpeg"])
     fun getAlbumCover(
-        @PathVariable artistPath: String,
-        @PathVariable albumPath: String,
+        @PathVariable artistIdOrPath: String,
+        @PathVariable albumIdOrPath: String,
         @RequestHeader(value = "If-None-Match", required = false) ifNoneMatch: String?,
     ): ResponseEntity<InputStreamResource> {
-        val artist = artistService.getArtistByPath(artistPath) ?: return ResponseEntity.notFound().build()
-        val album = songService.getAlbum(artist, albumPath)
+        val artist = artistService.getArtistByIdOrPath(artistIdOrPath) ?: return ResponseEntity.notFound().build()
+        val album = songService.getAlbum(artist, albumIdOrPath) ?: return ResponseEntity.notFound().build()
         if (album.coverPath == null)
             return ResponseEntity.notFound().build()
 
