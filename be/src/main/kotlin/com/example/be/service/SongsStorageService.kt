@@ -10,9 +10,9 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.security.spec.AlgorithmParameterSpec
 import javax.crypto.Cipher
-import javax.crypto.CipherInputStream
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.IvParameterSpec
 
@@ -110,13 +110,12 @@ class SongsStorageService(
 
     fun put(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, file: File) {
         if (song.encryptionKey.isNotEmpty()) {
-            val aes = AES(Base64.decode(song.encryptionKey, true))
             val tempFile = File.createTempFile("enc", "file")
 
             try {
                 FileInputStream(file).use { input ->
                     FileOutputStream(tempFile).use { output ->
-                        aes.encrypt(input, output)
+                        encrypt(song.encryptionKey, input, output)
                     }
                 }
 
@@ -143,13 +142,55 @@ class SongsStorageService(
         return Base64.encodeToString(key.encoded, false, true)
     }
 
-    private fun decrypt(encryptionKey: String, inputStream: InputStream): CipherInputStream {
+    private fun decrypt(encryptionKey: String, inputStream: InputStream): InputStream {
         val key = AES.generateKey(Base64.decode(encryptionKey, true))
         val iv = key.encoded
         val paramSpec: AlgorithmParameterSpec = IvParameterSpec(iv)
-        val dcipher: Cipher = Cipher.getInstance("AES/CFB8/NoPadding")
-        dcipher.init(Cipher.DECRYPT_MODE, key, paramSpec)
-        return CipherInputStream(inputStream, dcipher)
+        val cipher: Cipher = Cipher.getInstance("AES/CFB8/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, key, paramSpec)
+
+        val inputBuffer = ByteArray(1024)
+
+        return object : InputStream() {
+            override fun read(): Int {
+                TODO("Not yet implemented")
+            }
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                val read = inputStream.read(inputBuffer, 0, Math.min(inputBuffer.size, len))
+                if (read == -1)
+                    return -1
+
+                return cipher.update(inputBuffer, 0, read, b, off)
+            }
+        }
+    }
+
+    private fun encrypt(encryptionKey: String, inputStream: InputStream, outputStream: OutputStream) {
+        val key = AES.generateKey(Base64.decode(encryptionKey, true))
+        val iv = key.encoded
+        val paramSpec: AlgorithmParameterSpec = IvParameterSpec(iv)
+        val cipher: Cipher = Cipher.getInstance("AES/CFB8/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, paramSpec)
+
+
+        val inputBuffer = ByteArray(1024)
+        val outputBuffer = ByteArray(1024)
+        var r: Int
+        var encrypted: Int
+
+        while (true) {
+            r = inputStream.read(inputBuffer)
+            if (r == -1)
+                break
+
+            encrypted = cipher.update(inputBuffer, 0, r, outputBuffer, 0)
+            outputStream.write(outputBuffer, 0, encrypted)
+        }
+        encrypted = cipher.doFinal(outputBuffer, 0)
+        if (encrypted > 0)
+            outputStream.write(outputBuffer, 0, encrypted)
+        outputStream.close()
     }
 
 }
