@@ -17,13 +17,20 @@ import WindowActiveStore from "../stores/WindowActiveStore";
 import {useIsSafari} from "../utils/Hooks";
 
 
-const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string) => {
+const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string, isRetrying?: boolean) => {
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
 
     request.onload = () => {
         let audioData = request.response;
+        if (request.status != 200 || Number(request.getResponseHeader('Content-Length')) === 0) {
+            console.error(url, request.status, request.responseText)
+            if (!isRetrying) {
+                load(url, setAudio, localCache, artist, album, name, true)
+            }
+            return
+        }
         if (request.status != 200) {
             console.error(url, request.status, request.responseText)
             return

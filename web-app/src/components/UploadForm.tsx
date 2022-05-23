@@ -3,17 +3,21 @@ import DropFileInput from 'react-ui-basics/DropFileInput'
 import Button from 'react-ui-basics/Button'
 import MaterialIcon from 'react-ui-basics/MaterialIcon'
 import SpinningProgress from 'react-ui-basics/SpinningProgress'
-import {debounce, orNoop} from "react-ui-basics/Tools";
+import {classNames, debounce, orNoop} from "react-ui-basics/Tools";
 import NetworkService from "../services/NetworkService";
 import './UploadForm.css'
-import {styled} from "goober";
 import {css} from "goober";
+import {useStore} from "react-ui-basics/store/Store";
+import * as ArtistsStore from "../stores/ArtistsStore";
+import {FlexRow} from "./SharedComponents";
 
 const FilesTableClass = css({
     width: '100%',
 });
 
 interface SongFile {
+    artistId: number | null;
+    albumId: string | null;
     cancel: () => void;
     progress: number;
     name: string;
@@ -23,9 +27,13 @@ interface SongFile {
     file: File
 }
 
-export const UploadForm = ({}) => {
+export const UploadForm = ({artistId, albumId}: { artistId?: number, albumId?: string }) => {
     const [files, setFiles] = useState<SongFile[]>([])
     const [uploading, setUploading] = useState(false)
+    const artistsStore = useStore(ArtistsStore.store)
+
+    let artist = artistId && artistsStore.map[artistId];
+    let album = albumId && artist?.albums.find(it => it.id === albumId);
 
     const filesRef = useRef<SongFile[]>()
     filesRef.current = files
@@ -55,7 +63,7 @@ export const UploadForm = ({}) => {
         }
 
         update({uploading: true})
-        NetworkService.upload({file: next.file}, {
+        NetworkService.upload({file: next.file, artistId: next.artistId, albumId: next.albumId}, {
             provideCancel: (cancel) => {
                 update({cancel})
             },
@@ -75,6 +83,7 @@ export const UploadForm = ({}) => {
                 progress: 100,
                 finished: true
             })
+            ArtistsStore.set(value)
             startUploadingNextFile()
         }).catch(reason => {
             console.log('upload failed for ', next)
@@ -83,12 +92,27 @@ export const UploadForm = ({}) => {
 
     }
 
-    return <div className={'UploadForm'}>
+    return <div className={classNames('UploadForm', css`
+      margin-top: 20px;
+    `)}>
         <table className={FilesTableClass}>
             <tbody>
             {files.map(file => {
+                let artist = artistsStore.map[file.artistId];
+                let album = file.albumId && artist?.albums.find(it => it.id === file.albumId);
                 return <tr className={'file'} key={file.name}>
-                    <td>{file.name}</td>
+                    <td>
+                        <FlexRow>
+                            {file.name}
+
+                            {artist && <>
+                                <MaterialIcon icon={'chevron_right'}/> <b>{artist.name}</b>
+                            </>}
+                            {album && <>
+                                <MaterialIcon icon={'chevron_right'}/> <b>{album.name}</b>
+                            </>}
+                        </FlexRow>
+                    </td>
                     <td>
                         {file.uploading && !file.finished && file.progress !== 100 && 'uploading'}
                         {file.uploading && !file.finished && file.progress === 100 && 'processing'}
@@ -118,19 +142,34 @@ export const UploadForm = ({}) => {
             </tbody>
         </table>
 
-        {!uploading && <DropFileInput multiple={true} accept={'audio/*'} onDrop={newFiles => {
-            setFiles([...files, ...newFiles.map(file => ({
-                file,
-                name: file.name,
-                size: file.size,
-                total: file.size,
-                progress: 0,
-                loaded: 0,
-                cancel: null,
-                finished: false,
-                uploading: false,
-            }))]);
-        }}/>}
+        {!uploading && <DropFileInput
+            label={<FlexRow>
+                Select files to upload
+
+                {artist && <>
+                    <MaterialIcon icon={'chevron_right'}/> <b>{artist.name}</b>
+                </>}
+                {album && <>
+                    <MaterialIcon icon={'chevron_right'}/> <b>{album.name}</b>
+                </>}
+            </FlexRow>}
+            multiple={true}
+            accept={'audio/*'}
+            onDrop={newFiles => {
+                setFiles([...files, ...newFiles.map(file => ({
+                    file,
+                    artistId,
+                    albumId,
+                    name: file.name,
+                    size: file.size,
+                    total: file.size,
+                    progress: 0,
+                    loaded: 0,
+                    cancel: null,
+                    finished: false,
+                    uploading: false,
+                }))]);
+            }}/>}
 
         <br/>
         <Button className={'blue'} disabled={!files.length || uploading} onClick={e => {

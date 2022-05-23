@@ -71,12 +71,16 @@ const Library = ({artistId, album}) => {
     const isMobile = windowSize.width <= 800;
     let albumCardWidth = '200px'
     if (isMobile) {
-        albumCardWidth = `${(windowSize.width - 5) / 2}px`
+        albumCardWidth = `${(windowSize.width - 10) / 2}px`
     }
 
     return <Scrollable className={css`
       max-width: 100%;
       max-height: ${queue.length ? windowSize.height - 120 - 40 : windowSize.height - 40}px !important;
+
+      > .viewport {
+        text-align: center;
+      }
     `}>
         <Route path={"/"}>
             <ListArtists cardWidth={albumCardWidth}/>

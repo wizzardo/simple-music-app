@@ -20,21 +20,14 @@ class SongService(
     private val songsStorageService: SongsStorageService,
 ) {
 
-    fun getSongData(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song): TempFileInputStream {
+    fun getSongData(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song): File {
         val tempFile = File.createTempFile("song", song.path)
-        var delete = true
-        try {
-            songsStorageService.getStream(artist, album, song).use { inputStream ->
-                FileOutputStream(tempFile).use { outputStream ->
-                    IOTools.copy(inputStream, outputStream)
-                }
+        songsStorageService.getStream(artist, album, song).use { inputStream ->
+            FileOutputStream(tempFile).use { outputStream ->
+                IOTools.copy(inputStream, outputStream)
             }
-            delete = false
-            return TempFileInputStream(tempFile)
-        } finally {
-            if (delete)
-                tempFile.delete()
         }
+        return tempFile
 //        return storageService.getData("${artist.path}/${album.path}/${song.path}")
     }
 

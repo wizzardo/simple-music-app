@@ -10,9 +10,10 @@ const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album
 
     request.onload = () => {
         let audioData = request.response;
-        if (request.status != 200) {
-            console.error(url, request.status, request.responseText)
-            if (!isRetrying) {
+        const responsetext = (!request.responseType || request.responseType ==='text') && request.responseText;
+        if (request.status != 200 || Number(request.getResponseHeader('Content-Length')) === 0) {
+            console.error(url, request.status, responsetext)
+            if (!isRetrying || request.status === 503) {
                 load(url, setAudio, localCache, artist, album, name, true)
             }
             return

@@ -81,10 +81,20 @@ class SongsStorageService(
     }
 
     fun delete(artist: ArtistDto) {
+        artist.albums.forEach {
+            delete(artist, it)
+        }
         storageService.delete(artist.path())
     }
 
     fun delete(artist: ArtistDto, album: AlbumDto) {
+        album.songs.forEach {
+            delete(artist, album, it)
+        }
+        
+        if (album.coverPath != null)
+            storageService.delete("${artist.path()}/${album.path()}/${album.coverPath()}")
+
         storageService.delete("${artist.path()}/${album.path()}")
     }
 

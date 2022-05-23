@@ -78,7 +78,7 @@
     "preact-router": "^4.0.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "react-ui-basics": "0.0.168"
+    "react-ui-basics": "0.0.169"
   },
   "jest": {
     "preset": "jest-preset-preact",

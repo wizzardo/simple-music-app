@@ -6,6 +6,7 @@ import com.example.be.service.ArtistService
 import com.example.be.service.FFmpegService
 import com.example.be.service.SongService
 import com.example.be.service.UploadService
+import com.wizzardo.tools.cache.Cache
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.io.File
+import java.io.FileInputStream
 
 @RestController
 class ArtistController(
@@ -24,6 +27,28 @@ class ArtistController(
     companion object {
         val MAX_AGE_1_YEAR = "max-age=31556926"
     }
+
+    val cache: Cache<ConvertionTask, File> = Cache(-1, {
+
+        val artist: ArtistDto = artistService.getArtist(it.artistId)
+            ?: throw IllegalArgumentException("Artist not found. id: ${it.artistId}")
+        val album: AlbumDto = artist.albums.find { album -> album.name == it.albumIdOrName || album.id == it.albumIdOrName || album.path == it.albumIdOrName }
+            ?: throw IllegalArgumentException("Album not found. id: ${it.albumIdOrName}")
+
+        val trackNumber: Int = it.songIdOrTrackNumber.toIntOrNull() ?: -1
+        val song: AlbumDto.Song = album.songs.find { song -> song.id == it.songIdOrTrackNumber || song.track == trackNumber }
+            ?: throw IllegalArgumentException("Song not found. id: ${it.albumIdOrName}")
+
+        ffmpegService.convert(artist, album, song, it.format, it.bitrate)
+    })
+
+    data class ConvertionTask(
+        val artistId: Long,
+        val albumIdOrName: String,
+        val songIdOrTrackNumber: String,
+        val format: FFmpegService.AudioFormat,
+        val bitrate: Int
+    )
 
     @GetMapping("/artists")
     fun getArtists(): List<ArtistDto> = artistService.getArtists()
@@ -63,6 +88,36 @@ class ArtistController(
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         artistService.delete(item, albumId)
         return ResponseEntity.ok(artistService.getArtist(artistId))
+    }
+
+    data class CreateArtistRequest(var name: String = "")
+
+    @PostMapping("/artists/")
+    fun createArtist(
+        @RequestBody data: CreateArtistRequest,
+    ): ResponseEntity<ArtistDto> {
+        val artist = artistService.getOrCreateArtist(data.name, data.name.replace("/", " - "))
+        return ResponseEntity.ok(artist)
+    }
+
+    data class CreateAlbumRequest(
+        var artistId: Long = 0,
+        var name: String = "",
+    )
+
+    @PostMapping("/artists/{artistId}/album")
+    fun createAlbum(
+        @PathVariable artistId: Long,
+        @RequestBody data: CreateAlbumRequest,
+    ): ResponseEntity<ArtistDto> {
+        val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
+        val albumPath = data.name.replace("/", " - ")
+        val album = artist.albums.find { it.path == albumPath }
+        if (album == null) {
+            artistService.createAlbum(data.name, albumPath).also { artist.albums += it }
+            return ResponseEntity.ok(artistService.update(artist))
+        } else
+            return ResponseEntity.accepted().body(artist)
     }
 
     @DeleteMapping("/artists/{artistId}/{albumId}/{songId}")
@@ -135,7 +190,7 @@ class ArtistController(
             this.contentLength = data.length()
             this.contentType = MediaType.parseMediaType(type ?: "application/octet-stream")
         }
-        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
+        return ResponseEntity(InputStreamResource(FileInputStream(data)), headers, HttpStatus.OK)
     }
 
     @GetMapping(value = ["/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}"], produces = ["*/*"])
@@ -155,12 +210,12 @@ class ArtistController(
         val song: AlbumDto.Song = album.songs.find { song -> song.id == songIdOrTrackNumber || song.track == trackNumber }
             ?: return ResponseEntity.notFound().build()
 
-        val data = ffmpegService.convert(artist, album, song, format, bitrate)
+        val data = cache.get(ConvertionTask(artistId, albumIdOrName, songIdOrTrackNumber, format, bitrate))
         val headers = HttpHeaders().apply {
             this.contentLength = data.length()
             this.contentType = MediaType.parseMediaType(format.mimeType)
         }
-        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
+        return ResponseEntity(InputStreamResource(FileInputStream(data)), headers, HttpStatus.OK)
     }
 
     @GetMapping(value = ["/artists/{artistIdOrPath}/{albumIdOrPath}/cover.jpg"], produces = ["image/jpeg"])

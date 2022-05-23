@@ -36,7 +36,7 @@ class UploadService(
         file: MultipartFile,
         artistId: Long?,
         albumId: String?
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<ArtistDto> {
         val ext = file.originalFilename?.substringAfterLast('.') ?: "bin"
         val tempFile = File.createTempFile("upload", ".$ext")
         try {
@@ -64,7 +64,7 @@ class UploadService(
                 try {
                     tries++;
                     if (artist == null)
-                        artist = getOrCreateArtist(metaData, artistPath)
+                        artist = artistService.getOrCreateArtist(metaData.artist ?: UNKNOWN_ARTIST, artistPath)
                     val added = addSong(artist, metaData, albumPath, fileName, tempFile)
                     if (added == null)
                         continue
@@ -109,11 +109,11 @@ class UploadService(
                     e.printStackTrace()
                 }
             }
+
+            return ResponseEntity.ok(artist)
         } finally {
             tempFile.delete()
         }
-
-        return ResponseEntity.noContent().build()
     }
 
     data class AddResult(val artist: ArtistDto, val album: AlbumDto, val song: AlbumDto.Song)
@@ -135,24 +135,6 @@ class UploadService(
         }
 
         return if (added) AddResult(artist, album, song) else null
-    }
-
-    @Transactional
-    fun getOrCreateArtist(metaData: MetaData, path: String): ArtistDto {
-        var artist: Artist? = artistRepository.findByName(metaData.artist ?: UNKNOWN_ARTIST)
-        if (artist == null) {
-            artist = createArtistDto(metaData, path)
-            artistRepository.insert(artist)
-        }
-        return artist.toArtistDto(objectMapper)
-    }
-
-    private fun createArtistDto(metaData: MetaData, relativePath: String): Artist = Artist().apply {
-        created = LocalDateTime.now()
-        updated = LocalDateTime.now()
-        name = metaData.artist ?: UNKNOWN_ARTIST
-        path = relativePath
-        albums = JSONB.valueOf("[]")
     }
 
     private fun createAlbum(metaData: MetaData, relativePath: String): AlbumDto = AlbumDto().apply {

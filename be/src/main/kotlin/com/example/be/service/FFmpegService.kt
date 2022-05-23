@@ -68,7 +68,7 @@ class FFmpegService(
         )
     }
 
-    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): TempFileInputStream {
+    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): File {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == AudioFormat.FLAC)
             if (audio.contains("flac"))
@@ -91,36 +91,34 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): TempFileInputStream {
+    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): File {
         val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
         val tempOutFile = File.createTempFile("to_", "." + format.extension)
-        var delete = true
-        try {
-            songService.copySongData(artist, album, song, tempFile)
+        songService.copySongData(artist, album, song, tempFile)
 
-            val stopwatch = Stopwatch("converting to " + format)
-            val command =
-                arrayOf(
-                    "./ffmpeg",
-                    "-nostdin",
-                    "-y",
-                    "-hide_banner",
-                    "-i",
-                    tempFile.canonicalPath,
-                    "-map",
-                    "a",
-                    "-c:a",
-                    format.codec,
-                    "-ab",
-                    bitrate.toString() + "k",
-                    tempOutFile.canonicalPath
-                )
+        val stopwatch = Stopwatch("converting to " + format)
+        val command =
+            arrayOf(
+                "./ffmpeg",
+                "-nostdin",
+                "-y",
+                "-hide_banner",
+                "-i",
+                tempFile.canonicalPath,
+                "-map",
+                "a",
+                "-c:a",
+                format.codec,
+                "-ab",
+                bitrate.toString() + "k",
+                tempOutFile.canonicalPath
+            )
 //            println("executing command: ${Arrays.toString(command)}")
-            val process = Runtime.getRuntime().exec(command)
-            val exited = process.waitFor(30, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroy()
-            }
+        val process = Runtime.getRuntime().exec(command)
+        val exited = process.waitFor(120, TimeUnit.SECONDS)
+        if (!exited) {
+            process.destroy()
+        }
 
 //            println(stopwatch)
 //            println("output:")
@@ -128,14 +126,8 @@ class FFmpegService(
 //            println("error:")
 //            val message = String(process.errorStream.readAllBytes())
 //            println(message)
-            delete = false
-            return TempFileInputStream(tempOutFile)
+        return tempOutFile
 //            return Files.readAllBytes(tempOutFile.toPath())
-        } finally {
-            tempFile.delete()
-            if (delete)
-                tempOutFile.delete()
-        }
     }
 
     fun extractCoverArt(audio: File, to: File) {
@@ -211,7 +203,7 @@ class FFmpegService(
         try {
             val command =
                 arrayOf(
-                    "convert", "-quality ", "90", file.canonicalPath, tempFile.canonicalPath
+                    "convert", "-quality", "90", file.canonicalPath, tempFile.canonicalPath
                 )
             println("executing command: ${Arrays.toString(command)}")
             val process = Runtime.getRuntime().exec(command)

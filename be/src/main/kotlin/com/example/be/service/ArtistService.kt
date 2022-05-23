@@ -3,16 +3,20 @@ package com.example.be.service
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
 import com.example.be.db.dto.toArtistDto
+import com.example.be.db.generated.tables.pojos.Artist
 import com.example.be.db.repository.ArtistRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.jooq.JSONB
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class ArtistService(
     private val artistRepository: ArtistRepository,
     private val objectMapper: ObjectMapper,
     private val songsStorageService: SongsStorageService,
+    private val randomIdService: RandomIdService,
 ) {
 
     fun getArtists(): List<ArtistDto> {
@@ -69,6 +73,11 @@ class ArtistService(
         }
         artistRepository.update(id, to, objectMapper)
         return getArtist(id)!!
+    }
+
+    fun update(item: ArtistDto): ArtistDto {
+        artistRepository.update(item.id, item, objectMapper)
+        return getArtist(item.id)!!
     }
 
     fun getArtistByPath(artistPath: String): ArtistDto? {
@@ -136,5 +145,33 @@ class ArtistService(
         album.songs -= song
         artistRepository.update(artist.id, artist, objectMapper)
         songsStorageService.delete(artist, album, song)
+    }
+
+    @Transactional
+    fun getOrCreateArtist(name: String, path: String): ArtistDto {
+        var artist: Artist? = artistRepository.findByName(name)
+        if (artist == null) {
+            artist = createArtistDto(name, path)
+            artistRepository.insert(artist)
+        }
+        return artist.toArtistDto(objectMapper)
+    }
+
+    private fun createArtistDto(name: String, path: String): Artist = Artist().apply {
+        created = LocalDateTime.now()
+        updated = LocalDateTime.now()
+        this.name = name
+        this.path = path
+        albums = JSONB.valueOf("[]")
+    }
+
+    fun createAlbum(name: String, path: String): AlbumDto = AlbumDto().apply {
+        id = randomIdService.generateId()
+        this.path = path
+        this.name = name
+        this.songs = emptyList()
+        if (songsStorageService.encryption) {
+            coverEncryptionKey = songsStorageService.createEncryptionKey()
+        }
     }
 }

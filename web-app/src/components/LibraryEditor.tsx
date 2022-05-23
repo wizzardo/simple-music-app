@@ -8,7 +8,7 @@ import Dropzone from "react-ui-basics/Dropzone";
 import Checkbox from "react-ui-basics/Checkbox";
 import Link from "react-ui-basics/router/Link";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
-import NetworkService, {AlbumDto, ArtistDto} from "../services/NetworkService";
+import NetworkService, {AlbumDto, AlbumDtoSong, ArtistDto} from "../services/NetworkService";
 import React, {useEffect, useState} from "react";
 import Table from "react-ui-basics/Table";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
@@ -21,6 +21,7 @@ import SpinningProgress from "react-ui-basics/SpinningProgress";
 import {UploadForm} from "./UploadForm";
 import {formatDuration, getAlbumDuration} from "../utils/Helpers";
 import {FlexColumn, FlexRow, smallIconButtonCss} from "./SharedComponents";
+import {createProxy} from 'react-ui-basics/store/ProxyTools.js';
 
 export const DateFormatter = (date, item, format = 'YY-MM-DD hh:mm:ss') => date && dayjs(date).format(format);
 
@@ -51,75 +52,114 @@ const LibraryEditor = ({artistId, album}) => {
         <br/>
         <br/>
 
-        <Route path={"/edit"}>
-            <ListArtists artists={artists}/>
-        </Route>
-        <Route path={"/edit/:artistId"}>
-            <ListAlbums artist={artist}/>
-        </Route>
-        <Route path={"/edit/:artistId/:albumName"}>
-            <ListSongs album={albumDto} artist={artist}/>
-        </Route>
+        <>
+            <Route path={"/edit"}>
+                <ListArtists artists={artists}/>
+            </Route>
+            <Route path={"/edit/:artistId"}>
+                <ListAlbums artist={artist}/>
+            </Route>
+            <Route path={"/edit/:artistId/:albumName"}>
+                <ListSongs album={albumDto} artist={artist}/>
+            </Route>
+        </>
 
-        <UploadForm/>
+        <UploadForm artistId={artistId} albumId={albumDto?.id}/>
     </div>
 }
 
 export default LibraryEditor
 
 const ListArtists = ({artists}) => {
-    return <Table sortBy={'name'}
-                  data={artists}
-                  onRowClick={(it, e) => {
-                      // @ts-ignore
-                      if (e.target?.closest('.Button'))
-                          return
+    return <>
+        <Table sortBy={'name'}
+               data={artists}
+               onRowClick={(it, e) => {
+                   // @ts-ignore
+                   if (e.target?.closest('.Button'))
+                       return
 
-                      pushLocation('/edit/' + it['id'] + '/')
-                  }}
-                  rowClassName={css`
-                    &:hover {
-                      cursor: pointer;
+                   pushLocation('/edit/' + it['id'] + '/')
+               }}
+               rowClassName={css`
+                 &:hover {
+                   cursor: pointer;
+                 }
+               `}
+               columns={[
+                   {
+                       field: 'name',
+                       header: 'Name',
+                       sortable: true,
+                   },
+                   {
+                       field: 'updated',
+                       header: 'Date updated',
+                       sortable: true,
+                       formatter: DateFormatter
+                   },
+                   {
+                       field: 'id',
+                       header: '',
+                       sortable: false,
+                       formatter: ((id, item) => <Button round flat className={css`color: grey;`} onClick={e => {
+                           DialogStore.show({
+                               title: 'Are you sure to remove artist?',
+                               description: <>
+                                   <b>{item.name}</b>
+                                   <br/><br/>
+                                   This action cannot be undone!
+                               </>,
+                               buttons: <>
+                                   <Button className={'red'} onClick={() => {
+                                       NetworkService.deleteArtist({id}).then(() => {
+                                           NetworkService.getArtists().then(ArtistsStore.setAll)
+                                           DialogStore.hide()
+                                       })
+                                   }}>delete</Button>
+                               </>,
+                           })
+                       }}>
+                           <MaterialIcon icon={'delete'}/>
+                       </Button>)
+                   }
+               ]}/>
+
+        <FlexRow className={css`
+          justify-content: flex-end;
+          margin-top: 20px;
+        `}>
+            <Button className={css`margin-right: 20px;`} onClick={e => {
+                const Form = ({}) => {
+                    const [name, setName] = useState('')
+
+                    const onCreateClick = e => {
+                        NetworkService.createArtist({name}).then((artist) => {
+                            ArtistsStore.set(artist)
+                            DialogStore.hide()
+                        })
                     }
-                  `}
-                  columns={[
-                      {
-                          field: 'name',
-                          header: 'Name',
-                          sortable: true,
-                      },
-                      {
-                          field: 'updated',
-                          header: 'Date updated',
-                          sortable: true,
-                          formatter: DateFormatter
-                      },
-                      {
-                          field: 'id',
-                          header: '',
-                          sortable: false,
-                          formatter: ((id, item) => <Button round flat className={css`color: grey;`} onClick={e => {
-                              DialogStore.show({
-                                  title: 'Are you sure to remove artist?',
-                                  description: <>
-                                      <b>{item.name}</b>
-                                      <br/><br/>
-                                      This action cannot be undone!
-                                  </>,
-                                  buttons: <>
-                                      <Button className={'red'} onClick={() => {
-                                          NetworkService.deleteArtist({id}).then(() => {
-                                              NetworkService.getArtists().then(ArtistsStore.setAll)
-                                              DialogStore.hide()
-                                          })
-                                      }}>delete</Button>
-                                  </>,
-                              })
-                          }}>
-                              <MaterialIcon icon={'delete'}/>
-                          </Button>)
-                      }
-                  ]}/>
+
+                    return <>
+                        <TextField value={name} onChange={e => setName(e.target.value)}/>
+                        <FlexRow className={css`
+                          justify-content: flex-end;
+                          margin-top: 20px;
+                        `}>
+                            <Button onClick={onCreateClick}>Create</Button>
+                        </FlexRow>
+                    </>
+                }
+
+                DialogStore.show({
+                    title: 'Create new artist',
+                    description: <Form/>,
+                })
+            }}>
+                Create
+            </Button>
+        </FlexRow>
+    </>
 }
 
 
@@ -333,11 +373,65 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                         }
                     }}/>)
                 },
+                {
+                    field: 'id',
+                    sortable: false,
+                    formatter: ((id, item) => <Button round flat className={css`color: grey;`} onClick={e => {
+                        DialogStore.show({
+                            title: 'Are you sure to remove album?',
+                            description: <>
+                                <b>{item.name}</b>
+                                <br/><br/>
+                                This action cannot be undone!
+                            </>,
+                            buttons: <>
+                                <Button className={'red'} onClick={() => {
+                                    NetworkService.deleteAlbum({artistId: artist.id, albumId: item.id}).then(() => {
+                                        NetworkService.getArtist({id: artist.id}).then(ArtistsStore.set)
+                                        DialogStore.hide()
+                                    })
+                                }}>delete</Button>
+                            </>,
+                        })
+                    }}>
+                        <MaterialIcon icon={'delete'}/>
+                    </Button>)
+                }
             ]}/>
 
         <span className={css`height: 25px;`}/>
 
         <FlexRow className={css`justify-content: flex-end;`}>
+            <Button className={css`margin-right: 20px;`} onClick={e => {
+                const Form = ({}) => {
+                    const [name, setName] = useState('')
+
+                    const onCreateClick = e => {
+                        NetworkService.createAlbum({artistId: artist.id, name}).then((artist) => {
+                            ArtistsStore.set(artist)
+                            DialogStore.hide()
+                        })
+                    }
+
+                    return <>
+                        <TextField value={name} onChange={e => setName(e.target.value)}/>
+                        <FlexRow className={css`
+                          justify-content: flex-end;
+                          margin-top: 20px;
+                        `}>
+                            <Button onClick={onCreateClick}>Create</Button>
+                        </FlexRow>
+                    </>
+                }
+
+                DialogStore.show({
+                    title: 'Create new album for artist ' + artist.name,
+                    description: <Form/>,
+                })
+            }}>
+                Create
+            </Button>
+
             <Button disabled={merging || selected.length < 2} onClick={mergeAlbums}>
                 {merging && <SmallSpinner/>}
                 Merge
@@ -363,6 +457,20 @@ const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
             })
             .catch(console.error)
     }
+
+    const saveSongName = async (song: AlbumDtoSong, finishEditing: () => void) => {
+        const proxy = createProxy(artist)
+        const a = proxy.albums.find(it => it.id === album.id);
+        const songIndex = a.songs.findIndex(it => it.id === song.id);
+        a.songs[songIndex].title = song.title
+        a.songs[songIndex].track = song.track
+
+        let props = proxy.bake();
+        // console.log(artist, props)
+        await NetworkService.updateArtist(props).then(ArtistsStore.set)
+        finishEditing()
+    }
+
     return <>
         <FlexRow className={css`padding: 25px 50px;`}>
             <Dropzone multiple={false} accept={'image/*'} onDrop={files => {
@@ -408,22 +516,52 @@ const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
                 </FlexRow>
             </FlexColumn>
         </FlexRow>
-        <Table sortBy={'track'} data={album?.songs || []} columns={[
-            {
-                field: 'track',
-                header: 'Track',
-                sortable: true,
-            },
-            {
-                field: 'title',
-                header: 'Title',
-                sortable: true,
-            },
-            {
-                field: 'duration',
-                header: 'Duration',
-                sortable: true,
-                formatter: formatDuration
-            }
-        ]}/></>
+        <Table
+            sortBy={'track'}
+            data={album?.songs || []}
+            onChange={saveSongName}
+            columns={[
+                {
+                    field: 'track',
+                    header: 'Track',
+                    sortable: true,
+                    editable: true,
+                },
+                {
+                    field: 'title',
+                    header: 'Title',
+                    sortable: true,
+                    editable: true,
+                },
+                {
+                    field: 'duration',
+                    header: 'Duration',
+                    sortable: true,
+                    formatter: formatDuration
+                },
+                {
+                    field: 'id',
+                    sortable: false,
+                    formatter: ((id, item) => <Button round flat className={css`color: grey;`} onClick={e => {
+                        DialogStore.show({
+                            title: 'Are you sure to remove song?',
+                            description: <>
+                                <b>{item.title}</b>
+                                <br/><br/>
+                                This action cannot be undone!
+                            </>,
+                            buttons: <>
+                                <Button className={'red'} onClick={() => {
+                                    NetworkService.deleteSong({artistId: artist.id, albumId: album.id, songId: item.id}).then(() => {
+                                        NetworkService.getArtist({id: artist.id}).then(ArtistsStore.set)
+                                        DialogStore.hide()
+                                    })
+                                }}>delete</Button>
+                            </>,
+                        })
+                    }}>
+                        <MaterialIcon icon={'delete'}/>
+                    </Button>)
+                }
+            ]}/></>
 }

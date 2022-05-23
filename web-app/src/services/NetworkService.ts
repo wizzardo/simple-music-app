@@ -61,12 +61,12 @@ const createGET = <R>(template: string) => {
 
 const createPOST = <R, P extends Params>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template);
-    return async (params?: P,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
+    return async (params?: P,) => fetch<R>(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
 };
 
 const createDELETE = <R>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
-    return async (params?: Params,) => fetch(`${baseurl}${urlMaker(params)}`, {params, method: "DELETE"});
+    return async (params?: Params,) => fetch<R>(`${baseurl}${urlMaker(params)}`, {params, method: "DELETE"});
 };
 
 export interface MultipartOptions {
@@ -78,7 +78,7 @@ const createMultipart = <R>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template);
     return async (params: any, options?: MultipartOptions) => {
         let url = `${baseurl}${urlMaker(params)}`;
-        return fetch(url, {params, method: "POST", multipart: true, ...options});
+        return fetch<R>(url, {params, method: "POST", multipart: true, ...options});
     };
 };
 
@@ -90,6 +90,8 @@ export default {
     getArtists: createGET<Array<ArtistDto>>('/artists'),
     getSong: createGET('/artists/{artistId}/{albumName}/{trackNumber}'),
     getSongConverted: createGET('/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}'),
+    createAlbum: createPOST<ArtistDto, CreateAlbumRequest>('/artists/{artistId}/album'),
+    createArtist: createPOST<ArtistDto, CreateArtistRequest>('/artists/'),
     mergeAlbums: createPOST<ArtistDto, MergeAlbumsRequest>('/artists/{artistId}/{intoAlbumId}'),
     moveAlbum: createPOST('/artists/{artistId}/{albumId}/{toArtistId}'),
     updateArtist: createPOST<ArtistDto, ArtistDto>('/artists/{id}'),
@@ -100,11 +102,20 @@ export default {
 
 
 
-    upload: createMultipart<Object>('/upload'),
+    upload: createMultipart<ArtistDto>('/upload'),
 //generated endpoints end
 }
 
 //generated types start
+export interface CreateAlbumRequest {
+	artistId: number,
+	name: string,
+}
+
+export interface CreateArtistRequest {
+	name: string,
+}
+
 export interface MergeAlbumsRequest {
 	artistId: number,
 	intoAlbumId: string,
