@@ -2,10 +2,13 @@ package com.example.be.service
 
 import com.example.be.db.generated.tables.pojos.Config
 import com.example.be.db.repository.ConfigRepository
+import com.wizzardo.cloud.storage.CredentialsProvider
 import com.wizzardo.cloud.storage.FileInfo
+import com.wizzardo.cloud.storage.S3Storage
 import com.wizzardo.cloud.storage.Storage
 import com.wizzardo.cloud.storage.degoo.DegooStorage
 import com.wizzardo.cloud.storage.fs.LocalStorage
+import com.wizzardo.cloud.storage.terabox.TeraboxStorage
 import com.wizzardo.tools.json.JsonObject
 import com.wizzardo.tools.json.JsonTools
 import org.jooq.JSONB
@@ -45,6 +48,13 @@ class StorageService(
 
         storage = when (type) {
             "local" -> LocalStorage(File(path)) as Storage<FileInfo>
+            "terabox" -> TeraboxStorage() as Storage<FileInfo>
+            "s3" -> S3Storage(
+                System.getenv("STORAGE_S3_HOST"),
+                System.getenv("STORAGE_S3_BUCKET"),
+                System.getenv("STORAGE_S3_REGION"),
+                CredentialsProvider.createSimpleProvider(System.getenv("STORAGE_S3_KEY_ID"), System.getenv("STORAGE_S3_SECRET"))
+            ) as Storage<FileInfo>
             "degoo" -> DegooStorage(username, password).also {
                 it.setTokenGetterSetter({
                     configRepository.findByName("DEGOO_TOKEN")?.data?.data()?.let {
@@ -92,7 +102,10 @@ class StorageService(
 
     override fun createFolder(path: String) = storage.createFolder(withSubPath(path))
 
-    override fun delete(file: FileInfo) = storage.delete(file)
+    override fun delete(file: FileInfo?) {
+        if (file != null)
+            storage.delete(file)
+    }
 
     override fun put(path: String, bytes: ByteArray) = storage.put(withSubPath(path), bytes)
 
