@@ -48,6 +48,8 @@ dependencies {
     implementation 'com.wizzardo.cloud-storage-webdav:base:1.0-SNAPSHOT'
     implementation 'com.wizzardo.cloud-storage-webdav:local:1.0-SNAPSHOT'
     implementation 'com.wizzardo.cloud-storage-webdav:degoo:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:terabox:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:s3:1.0-SNAPSHOT'
 //    implementation files('../../cloud-storage-webdav/storages/base/build/libs/base-1.0-SNAPSHOT.jar')
 //    implementation files('../../cloud-storage-webdav/storages/local/build/libs/local-1.0-SNAPSHOT.jar')
 //    implementation files('../../cloud-storage-webdav/storages/degoo/build/libs/degoo-1.0-SNAPSHOT.jar')
