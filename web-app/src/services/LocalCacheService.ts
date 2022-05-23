@@ -36,6 +36,44 @@ export class SongLocalCacheDB extends DB {
             .asPromise()
     }
 
+    async deleteSong(song: Song) {
+        let tr = this.trRW(SONGS_STORE_NAME, SONG_DATA_STORE_NAME);
+        const songId = await tr.objectStore<Song, number>(SONGS_STORE_NAME)
+            .index<string>('url')
+            .getKey(song.url)
+            .asPromise()
+
+        await tr.objectStore<Song, number>(SONGS_STORE_NAME)
+            .delete(songId)
+            .asPromise()
+        await tr.objectStore<SongData, number>(SONG_DATA_STORE_NAME)
+            .delete(song.dataId)
+            .asPromise()
+    }
+
+    async deleteUnusedSongData() {
+        let tr = this.trRW(SONGS_STORE_NAME, SONG_DATA_STORE_NAME);
+        const songs = await tr.objectStore<Song, number>(SONGS_STORE_NAME)
+            .getAll()
+            .asPromise()
+        const songDataKeys = await tr.objectStore<SongData, number>(SONG_DATA_STORE_NAME)
+            .getAllKeys()
+            .asPromise()
+
+        var usedDataKeys = songs.reduce((set, song) => {
+            set.add(song.dataId)
+            return set
+        }, new Set<number>());
+
+        for (const id of songDataKeys) {
+            if (!usedDataKeys.has(id)) {
+                await tr.objectStore<SongData, number>(SONG_DATA_STORE_NAME)
+                    .delete(id)
+                    .asPromise()
+            }
+        }
+    }
+
     async songData(id: number) {
         return this.trRO(SONG_DATA_STORE_NAME)
             .objectStore<SongData, number>(SONG_DATA_STORE_NAME)

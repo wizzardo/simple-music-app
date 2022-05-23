@@ -61,14 +61,20 @@ const MoreMenu = ({className}) => <AutocompleteSelect
     selectedMode={'inline'}
     onSelect={v => {
         v === 'settings' && pushLocation('/settings')
+        v === 'cache' && pushLocation('/cache')
     }}
     data={[
         'settings',
+        'cache',
     ]}
     labels={{
         'settings': <FlexRow>
             <MaterialIcon icon={'settings'}/>
             Settings
+        </FlexRow>,
+        'cache': <FlexRow>
+            <MaterialIcon icon={'archive'}/>
+            Cache
         </FlexRow>,
     }}
 />;

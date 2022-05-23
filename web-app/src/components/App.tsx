@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {classNames} from "react-ui-basics/Tools";
 import Route from "react-ui-basics/router/Route";
 import LibraryEditor from "./LibraryEditor";
@@ -18,6 +18,7 @@ import Button from "react-ui-basics/Button";
 import {pushLocation} from "react-ui-basics/router/HistoryTools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import {useWindowSize} from "../utils/Hooks";
+import {useLocalCache} from "../services/LocalCacheService";
 
 export default () => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -32,6 +33,11 @@ export default () => {
 
     const windowSize = useWindowSize();
     const isMobile = windowSize.width <= 800;
+
+    const localCacheDB = useLocalCache();
+    useEffect(() => {
+        localCacheDB && localCacheDB.deleteUnusedSongData()
+    }, [localCacheDB])
 
     return (
         <div className={classNames("App", css`
@@ -66,7 +72,10 @@ export default () => {
                       }
                     `)} flat round onClick={e => {
                         let pathname = window.location.pathname;
-                        pathname = pathname.substring(0, pathname.lastIndexOf('/'))
+                        let i = pathname.lastIndexOf('/');
+                        if (i === pathname.length - 1)
+                            i = pathname.lastIndexOf('/', i - 1)
+                        pathname = pathname.substring(0, i + 1)
                         if (!pathname)
                             pathname = '/'
                         pushLocation(pathname)
@@ -85,7 +94,7 @@ export default () => {
                     <LibraryEditor album={null} artistId={null}/>
                 </Route>
 
-                <Route path={"/cacheStats"}>
+                <Route path={"/cache"}>
                     <CacheStats/>
                 </Route>
 
