@@ -14,24 +14,24 @@ export const store = new Store({
 
 export default store;
 
+const saveSettings = () => {
+    localStorage.setItem('settings', JSON.stringify(store.get()));
+};
 
 export const setFormat = (format: string) => {
     store.set(state => {
         state.format = format
-        saveSettings()
     });
+    saveSettings()
 }
 
 export const setBitrate = (bitrate: number) => {
     store.set(state => {
         state.bitrate = bitrate
-        saveSettings()
     });
+    saveSettings()
 }
 
-const saveSettings = () => {
-    localStorage.setItem('settings', JSON.stringify(store.get()));
-};
 (() => {
     let savedState = localStorage.getItem('settings');
     if (savedState) {

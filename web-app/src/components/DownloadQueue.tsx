@@ -57,7 +57,7 @@ const DownloadQueue = ({}) => {
         load(task.url, (song, data) => {
             setDownloading(false)
             DownloadQueueStore.pop()
-
+            task.onDownloaded?.(song, data)
         }, localCache, task.artist, task.album, task.song)
 
     }, [localCache, queue, downloading])

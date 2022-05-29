@@ -1,4 +1,5 @@
 import Store from "react-ui-basics/store/Store";
+import {addEventListener, WINDOW} from "react-ui-basics/Tools";
 
 
 export type QueuedSong = {
@@ -32,10 +33,10 @@ export const setQueue = (songs: QueuedSong[]) => {
         state.offset = 0
     });
 }
-export const play = (songs: QueuedSong[]) => {
+export const play = (songs: QueuedSong[], position = 0) => {
     store.set(state => {
         state.queue = songs
-        state.position = 0
+        state.position = position
         state.playing = true
         state.offset = 0
     });
@@ -49,6 +50,12 @@ export const appendToQueue = (songs: QueuedSong[]) => {
 export const setPlaying = (playing: boolean) => {
     store.set(state => {
         state.playing = playing
+    });
+}
+export const setPlayingAndOffset = (playing: boolean, offset: number) => {
+    store.set(state => {
+        state.playing = playing
+        state.offset = offset
     });
 }
 export const setOffset = (offset: number) => {
@@ -78,9 +85,9 @@ export const prev = () => {
     });
 }
 
-window.addEventListener('unload', evt => {
+addEventListener(WINDOW, 'beforeunload', evt => {
     localStorage.setItem('playerState', JSON.stringify(store.get()));
-});
+}, {});
 
 (() => {
     let savedState = localStorage.getItem('playerState');

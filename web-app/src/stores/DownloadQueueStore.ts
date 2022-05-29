@@ -1,4 +1,5 @@
 import Store from "react-ui-basics/store/Store";
+import {Song} from "../services/LocalCacheService";
 
 
 export type DownloadQueueState = {
@@ -12,6 +13,7 @@ export type DownloadTask = {
     song: string,
     format: string,
     bitrate: number,
+    onDownloaded?: (song: Song, data: ArrayBuffer) => void,
 }
 
 export const store = new Store({
@@ -44,8 +46,9 @@ export const download = (
     song: string,
     format: string,
     bitrate: number,
+    onDownloaded?: (song: Song, data: ArrayBuffer) => void
 ) => {
     store.set(state => {
-        state.queue.push({url, song, artist, album, format, bitrate})
+        state.queue.push({url, song, artist, album, format, bitrate, onDownloaded})
     });
 }

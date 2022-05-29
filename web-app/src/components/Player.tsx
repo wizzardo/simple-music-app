@@ -15,46 +15,7 @@ import * as SettingsStore from "../stores/SettingsStore";
 import NetworkService from "../services/NetworkService";
 import WindowActiveStore from "../stores/WindowActiveStore";
 import {useIsSafari} from "../utils/Hooks";
-
-
-const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string, isRetrying?: boolean) => {
-    var request = new XMLHttpRequest();
-    request.open('GET', url, true);
-    request.responseType = 'arraybuffer';
-
-    request.onload = () => {
-        let audioData = request.response;
-        if (request.status != 200 || Number(request.getResponseHeader('Content-Length')) === 0) {
-            console.error(url, request.status, request.responseText)
-            if (!isRetrying) {
-                load(url, setAudio, localCache, artist, album, name, true)
-            }
-            return
-        }
-        if (request.status != 200) {
-            console.error(url, request.status, request.responseText)
-            return
-        }
-
-        const contentType = request.getResponseHeader('Content-Type');
-        const data = audioData.slice();
-
-        let song = {
-            url,
-            name,
-            album,
-            artist,
-            type: contentType,
-            size: data.byteLength,
-            dataId: 0,
-            timesPlayed: 0,
-            dateAdded: new Date().getTime(),
-        };
-        localCache.add(song, data)
-        setAudio(song, data)
-    }
-    request.send();
-};
+import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 
 const Player = ({}) => {
     const localCache = useLocalCache();
@@ -213,14 +174,12 @@ const Player = ({}) => {
                     });
                     navigator.mediaSession.setActionHandler('stop', () => {
                         console.log('mediaSession on stop')
-                        PlayerStore.setPlaying(false)
-                        PlayerStore.setOffset(0)
+                        PlayerStore.setPlayingAndOffset(false, 0)
                         audio.pause()
                     });
                     navigator.mediaSession.setActionHandler('pause', () => {
                         console.log('mediaSession on pause')
-                        PlayerStore.setPlaying(false)
-                        PlayerStore.setOffset(audio.currentTime)
+                        PlayerStore.setPlayingAndOffset(false, audio.currentTime)
                         audio.pause()
                     });
 
@@ -301,12 +260,28 @@ const Player = ({}) => {
 
             if (!cachedSong) {
                 console.log('downloading', audioUrl)
-                load(audioUrl, loadAudio, localCache, artist.name, album.name, song.title)
+                DownloadQueueStore.download(
+                    audioUrl,
+                    artist.name,
+                    album.name,
+                    song.title,
+                    format,
+                    bitrate,
+                    loadAudio
+                )
             } else {
                 const sd = await localCache.songData(cachedSong.dataId)
-                if (!sd)
-                    load(audioUrl, loadAudio, localCache, artist.name, album.name, song.title)
-                else
+                if (!sd) {
+                    DownloadQueueStore.download(
+                        audioUrl,
+                        artist.name,
+                        album.name,
+                        song.title,
+                        format,
+                        bitrate,
+                        loadAudio
+                    )
+                } else
                     loadAudio(cachedSong, sd.data)
             }
         })().catch(console.error)
@@ -334,6 +309,16 @@ const Player = ({}) => {
 
     }, [audio, volume])
 
+    useEffect(() => {
+        if (playing)
+            return
+        if (!duration)
+            return
+
+        const progress = offset / duration * 100
+        setProgress(Math.min(progress, 100))
+    }, [playing, offset, duration])
+
     let isMobile = window.innerWidth <= 800;
 
     return <div className={css`
@@ -342,6 +327,8 @@ const Player = ({}) => {
       left: 0px;
       right: 0px;
       user-select: none;
+      height: 151px;
+      overflow: hidden;
     `}>
         <div className={css`
           padding: 20px;
@@ -351,6 +338,28 @@ const Player = ({}) => {
               margin-left: auto;
               margin-right: auto;
             `}>
+                {song && <FlexRow className={css`
+                  justify-content: center;
+                  flex-wrap: wrap;
+                  height: 33px;
+                `}>
+                    <b className={css`
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    `}>
+                        {song.title}
+                    </b>
+                    <span className={css`
+                      font-size: 12px;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    `}>
+                        &nbsp;&nbsp;by&nbsp;&nbsp;
+                        {artist.name}
+                    </span>
+                </FlexRow>}
                 <FlexRow>
                 <span className={css`margin-right: 10px;`}>
                     {audio && formatDuration(duration * 1000 / 100 * progress)}
@@ -405,7 +414,12 @@ const Player = ({}) => {
                           }
                         `)} flat round onClick={e => {
                             audio?.pause()
-                            queue.length && PlayerStore.setPlaying(!playing);
+                            if (queue.length) {
+                                if (audio && playing)
+                                    PlayerStore.setPlayingAndOffset(!playing, audio.currentTime);
+                                else
+                                    PlayerStore.setPlaying(!playing);
+                            }
                         }}>
                             <MaterialIcon icon={!playing ? 'play_arrow' : 'pause'}/>
                         </Button>

@@ -77,7 +77,7 @@ const Library = ({artistId, album}) => {
     return <Scrollable className={css`
       max-width: 100%;
       padding-right: 0;
-      max-height: ${queue.length ? windowSize.height - 114  : windowSize.height}px !important;
+      max-height: ${queue.length ? windowSize.height - 151 : windowSize.height}px !important;
 
       > .viewport {
         text-align: center;
@@ -206,9 +206,9 @@ const ListSongs = ({artistId, albumName}) => {
     let isMobile = window.innerWidth <= 800;
 
     return <FlexRow className={css`
-      padding: ${!isMobile ? '20px' : '20px 0px'};
       padding-top: 40px;
       margin: ${isMobile ? 0 : '20px'};
+      margin-bottom: 0;
       flex-flow: row ${isMobile ? 'wrap' : 'nowrap'};
       align-items: flex-start;`}>
 
@@ -287,7 +287,7 @@ const ListSongs = ({artistId, albumName}) => {
 
             <Scrollable scrollBarMode={SCROLLBAR_MODE_VISIBLE} className={css`
               max-width: 100%;
-              max-height: ${refSeparatorSongs.current ? (window.innerHeight - 145 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px'};
+              max-height: ${isMobile ? 9999 + 'px' : (refSeparatorSongs.current ? (window.innerHeight - 151 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px')};
             `}>
                 {songs.map(it => <Song key={it.id} artist={artist} album={album} song={it}/>)}
             </Scrollable>
@@ -333,17 +333,32 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
         color: gray;
       }
     `}>
-        <span className={css`width: 20px;
-          text-align: right;
-          margin-right: 10px;`}>{song.track}.</span>
+        <FlexRow
+            className={css`
+              flex-grow: 1;
+              margin-right: 20px;
+              cursor: pointer;
+            `}
+            onClick={e => {
+                PlayerStore.play(album.songs.map(it => ({
+                    artistId: artist.id,
+                    albumId: album.id,
+                    songId: it.id
+                })), album.songs.findIndex(it => it.id === song.id))
+            }}
+        >
+            <span className={css`width: 20px;
+              text-align: right;
+              margin-right: 10px;`}>{song.track}.</span>
 
-        <span className={css`
-          display: inline-flex;
-          flex-basis: 1px;
-          flex-grow: 1;
-          color: ${isCurrentSong ? '#c02727' : 'black'};
-          font-weight: ${isCurrentSong ? 'bold' : 'normal'};
-        `}>{song.title}</span>
+            <span className={css`
+              display: inline-flex;
+              flex-basis: 1px;
+              flex-grow: 1;
+              color: ${isCurrentSong ? '#c02727' : 'black'};
+              font-weight: ${isCurrentSong ? 'bold' : 'normal'};
+            `}>{song.title}</span>
+        </FlexRow>
 
         {!!cachedSong && downloadRequested && <span className={css`
           display: inline-flex;
