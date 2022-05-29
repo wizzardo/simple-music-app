@@ -72,6 +72,14 @@ const Player = ({}) => {
     const duration = song?.duration / 1000
 
     const [audio] = useState<HTMLAudioElement>(() => new Audio())
+    const [silence] = useState<HTMLAudioElement>(() => new Audio())
+
+    useEffect(()=>{
+        if(!silence)
+            return
+        silence.src = '/static/silence.mp3';
+        silence.loop = true;
+    },[silence])
 
     useEffect(() => {
         let updater;
@@ -80,11 +88,13 @@ const Player = ({}) => {
             // PlayerStore.setPlaying(false)
             // clearInterval(updater)
             PlayerStore.setOffset(audio.currentTime)
+            silence.pause()
         });
 
         audio.addEventListener('play', (e) => {
             console.log('on play', e)
             PlayerStore.setPlaying(true)
+            silence.play() // otherwise bluetooth headphones makes a pop sound in between tracks
 
             const {queue, position} = PlayerStore.store.get();
 
