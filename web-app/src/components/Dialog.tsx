@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import DialogStore from "../stores/DialogStore";
+import * as DialogStore  from "../stores/DialogStore";
 import Modal from 'react-ui-basics/Modal'
 import 'react-ui-basics/Dialog.css'
 import {classNames} from "react-ui-basics/Tools";
@@ -8,7 +8,7 @@ import {useStore} from "react-ui-basics/store/Store";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 
 export default () => {
-    const {show, accept, cancel, onAccept, onCancel, title, description, buttons} = useStore(DialogStore)
+    const {show, accept, cancel, onAccept, onCancel, title, description, buttons} = useStore(DialogStore.store)
 
     const [open, setOpen] = useState();
     const [close, setClose] = useState();
@@ -29,7 +29,10 @@ export default () => {
         className={classNames('DialogModal')}
         open={open => setOpen(() => open)}
         close={close => setClose(() => close)}
-        onClose={onCancel}
+        onClose={() => {
+            DialogStore.hide()
+            onCancel?.()
+        }}
         closeIcon={<MaterialIcon icon={'close'}/>}
     >
         <div className="Dialog">

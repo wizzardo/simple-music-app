@@ -7,6 +7,7 @@ import AutocompleteSelect, {MODE_MINI} from "react-ui-basics/AutocompleteSelect"
 import Dropzone from "react-ui-basics/Dropzone";
 import Checkbox from "react-ui-basics/Checkbox";
 import Link from "react-ui-basics/router/Link";
+import NavLink from "react-ui-basics/router/NavLink";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
 import NetworkService, {AlbumDto, AlbumDtoSong, ArtistDto} from "../services/NetworkService";
 import React, {useEffect, useState} from "react";
@@ -24,6 +25,17 @@ import {FlexColumn, FlexRow, smallIconButtonCss} from "./SharedComponents";
 import {createProxy} from 'react-ui-basics/store/ProxyTools.js';
 
 export const DateFormatter = (date, item, format = 'YY-MM-DD hh:mm:ss') => date && dayjs(date).format(format);
+
+const LinkStyles = css`
+  margin-right: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: gray;
+`
+const LinkActiveStyles = css`
+  color: #038acc;
+`
 
 const LibraryEditor = ({artistId, album}) => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -43,23 +55,35 @@ const LibraryEditor = ({artistId, album}) => {
     let albumDto: AlbumDto = artistsStore.map[artistId]?.albums?.find(it => it.name === albumName);
     return <div className={css`
       background: white;
+      padding: 20px;
     `}>
-        <Link href={'/edit/'}>Artists:</Link>
+        <FlexRow className={css`
+          margin-left: 50px;
+          margin-bottom: 20px;
+        `}>
+            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/edit/artists/'} highlightPath={'/edit/artists/*'}>Artists</NavLink>
+            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/edit/albums/'} highlightPath={'/edit/albums/*'}>Albums</NavLink>
+        </FlexRow>
+
+        {artist && <Link href={'/edit/artists/'}>Artists:</Link>}
         &nbsp;&nbsp;
-        {artistId && artist && <Link href={'/edit/' + artistId + '/'}>{artist.name}:</Link>}
+        {artist && <Link href={'/edit/artists/' + artistId + '/'}>{artist.name}:</Link>}
         &nbsp;&nbsp;
-        {albumName && <span>{albumName}:</span>}
+        {albumDto && <span>{albumDto.name}:</span>}
         <br/>
         <br/>
 
         <>
-            <Route path={"/edit"}>
+            <Route path={"/edit/artists"}>
                 <ListArtists artists={artists}/>
             </Route>
-            <Route path={"/edit/:artistId"}>
+            <Route path={"/edit/albums"}>
+                <ListAlbumsArtists artists={artists}/>
+            </Route>
+            <Route path={"/edit/artists/:artistId"}>
                 <ListAlbums artist={artist}/>
             </Route>
-            <Route path={"/edit/:artistId/:albumName"}>
+            <Route path={"/edit/artists/:artistId/:albumName"}>
                 <ListSongs album={albumDto} artist={artist}/>
             </Route>
         </>
@@ -79,7 +103,7 @@ const ListArtists = ({artists}) => {
                    if (e.target?.closest('.Button'))
                        return
 
-                   pushLocation('/edit/' + it['id'] + '/')
+                   pushLocation('/edit/artists/' + it['id'] + '/')
                }}
                rowClassName={css`
                  &:hover {
@@ -97,6 +121,12 @@ const ListArtists = ({artists}) => {
                        header: 'Date updated',
                        sortable: true,
                        formatter: DateFormatter
+                   },
+                   {
+                       field: 'albums',
+                       header: 'Albums',
+                       sortable: true,
+                       formatter: (albums) => `${albums.length}`
                    },
                    {
                        field: 'id',
@@ -162,11 +192,194 @@ const ListArtists = ({artists}) => {
     </>
 }
 
+interface Album extends AlbumDto {
+    artistId: number
+}
+
+
+const ListAlbumsArtists = ({artists}) => {
+    const artistsStore = useStore(ArtistsStore.store)
+    const albums = artists.map(artist => artist.albums.map(it => ({...it, artistId: artist.id}))).flat()
+
+    const [selected, setSelected] = useState<string[]>([])
+    const [merging, setMerging] = useState(false)
+
+    const moveAlbum = async (album, toArtistId) => {
+        await NetworkService.moveAlbum({artistId: album.artistId, albumId: album.id, toArtistId})
+    }
+
+    const mergeAlbums = async () => {
+        setMerging(true)
+        const ids = [...selected]
+        ids.sort(Comparators.of(id => getAlbumDuration(albums.find(it => it.id === id)), Comparators.SORT_ASC, selected))
+        const intoAlbumId = ids.pop()
+
+        const intoAlbum = albums.find(it => it.id === intoAlbumId)
+        const albumsToMove = ids.map(id => albums.find(it => it.id === id))
+        for (let i = 0; i < albumsToMove.length; i++) {
+            await moveAlbum(albumsToMove[i], intoAlbum.artistId)
+        }
+
+        await NetworkService.mergeAlbums({artistId: intoAlbum.artistId, intoAlbumId, albums: ids})
+        await NetworkService.getArtists().then(ArtistsStore.setAll)
+        setMerging(false)
+        setSelected([])
+    }
+
+
+    return <>
+        <Table<Album>
+            sortBy={'name'}
+            data={albums}
+            onRowClick={(it, e) => {
+                // @ts-ignore
+                if (e.target?.closest('.Button'))
+                    return
+                // @ts-ignore
+                if (e.target?.closest('.Checkbox'))
+                    return
+
+                pushLocation('/edit/artists/' + it.artistId + '/' + it.path)
+            }}
+            rowClassName={css`
+              &:hover {
+                cursor: pointer;
+              }
+            `}
+            columns={[
+                {
+                    field: 'coverPath',
+                    sortable: false,
+                    formatter: ((it, item) => {
+                        if (it)
+                            return <CoverSmall src={NetworkService.baseurl + '/artists/' + item.artistId + '/' + item.id + '/' + it} alt={'cover'}/>;
+                        else
+                            return <MaterialIcon className={css`
+                              font-size: 50px;
+                            `} icon={'album'}/>;
+                    })
+                },
+                {
+                    field: 'name',
+                    header: 'Name',
+                    sortable: true,
+                },
+                {
+                    field: 'artistId',
+                    header: 'Artist',
+                    sortable: true,
+                    formatter: (id) => artistsStore.map[id]?.name,
+                    comparator: Comparators.of((it) => artistsStore.map[it.artistId]?.name, Comparators.SORT_ASC, albums)
+                },
+                {
+                    field: 'date',
+                    header: 'Date',
+                    sortable: true,
+                },
+                {
+                    field: 'songs',
+                    header: 'Tracks',
+                    sortable: false,
+                    formatter: ((it) => it.length)
+                },
+                {
+                    field: 'songs',
+                    header: 'Duration',
+                    sortable: false,
+                    formatter: ((it) => formatDuration(it.reduce((total, it) => {
+                        total += it.duration;
+                        return total
+                    }, 0) || 0))
+                },
+                {
+                    field: 'id',
+                    header: '',
+                    sortable: false,
+                    formatter: ((id) => <Checkbox value={selected.includes(id)} onChange={e => {
+                        if (e.target.checked) {
+                            setSelected([...selected, id])
+                        } else {
+                            setSelected(selected.filter(it => it !== id))
+                        }
+                    }}/>)
+                },
+                {
+                    field: 'id',
+                    sortable: false,
+                    formatter: ((id, item) => <Button round flat className={css`color: grey;`} onClick={e => {
+                        DialogStore.show({
+                            title: 'Are you sure to remove album?',
+                            description: <>
+                                <b>{item.name}</b>
+                                <br/><br/>
+                                This action cannot be undone!
+                            </>,
+                            buttons: <>
+                                <Button className={'red'} onClick={() => {
+                                    NetworkService.deleteAlbum({artistId: item.artistId, albumId: item.id}).then(() => {
+                                        NetworkService.getArtist({id: item.artistId}).then(ArtistsStore.set)
+                                        DialogStore.hide()
+                                    })
+                                }}>delete</Button>
+                            </>,
+                        })
+                    }}>
+                        <MaterialIcon icon={'delete'}/>
+                    </Button>)
+                }
+            ]}/>
+
+        <FlexRow className={css`
+          justify-content: flex-end;
+          margin-top: 20px;
+        `}>
+            <Button className={css`margin-right: 20px;`} onClick={e => {
+                const Form = ({}) => {
+                    const [name, setName] = useState('')
+
+                    const onCreateClick = e => {
+                        NetworkService.createArtist({name}).then((artist) => {
+                            ArtistsStore.set(artist)
+                            DialogStore.hide()
+                        })
+                    }
+
+                    return <>
+                        <TextField value={name} onChange={e => setName(e.target.value)}/>
+                        <FlexRow className={css`
+                          justify-content: flex-end;
+                          margin-top: 20px;
+                        `}>
+                            <Button onClick={onCreateClick}>Create</Button>
+                        </FlexRow>
+                    </>
+                }
+
+                DialogStore.show({
+                    title: 'Create new artist',
+                    description: <Form/>,
+                })
+            }}>
+                Create
+            </Button>
+
+            <Button disabled={merging || selected.length < 2} onClick={mergeAlbums}>
+                {merging && <SmallSpinner/>}
+                Merge
+            </Button>
+        </FlexRow>
+    </>
+}
+
 
 const Cover = styled("img")`
   border-radius: 4px;
   max-width: 150px;
   max-height: 150px;
+`;
+const CoverSmall = styled(Cover)`
+  max-width: 50px;
+  max-height: 50px;
 `;
 
 
@@ -293,6 +506,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
     const [merging, setMerging] = useState(false)
 
     const mergeAlbums = async () => {
+        setMerging(true)
         const albums = [...selected]
         albums.sort(Comparators.of(id => getAlbumDuration(artist.albums.find(it => it.id === id)), Comparators.SORT_ASC, selected))
         const intoAlbumId = albums.pop()
@@ -316,7 +530,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                 if (e.target?.closest('.Checkbox'))
                     return
 
-                pushLocation('/edit/' + artist.id + '/' + it.name + '/')
+                pushLocation('/edit/artists/' + artist.id + '/' + it.name + '/')
             }}
             rowClassName={css`
               &:hover {
@@ -447,7 +661,7 @@ const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
         const i = albums.findIndex(it => it.id === album.id);
         albums[i] = {...albums[i], name: value}
         await NetworkService.updateArtist({...artist, albums}).then(ArtistsStore.set)
-        replaceLocation('/edit/' + artist.id + '/' + encodeURIComponent(value))
+        replaceLocation('/edit/artists/' + artist.id + '/' + encodeURIComponent(value))
     }
 
     const moveAlbum = async (toArtist) => {

@@ -1,4 +1,5 @@
 import Store from "react-ui-basics/store/Store";
+import {addEventListener, WINDOW} from "react-ui-basics/Tools";
 
 
 export type SettingsState = {
@@ -17,18 +18,20 @@ export default store;
 export const setFormat = (format: string) => {
     store.set(state => {
         state.format = format
+        saveSettings()
     });
 }
 
 export const setBitrate = (bitrate: number) => {
     store.set(state => {
         state.bitrate = bitrate
+        saveSettings()
     });
 }
 
-window.onbeforeunload = () => {
+const saveSettings = () => {
     localStorage.setItem('settings', JSON.stringify(store.get()));
-}
+};
 (() => {
     let savedState = localStorage.getItem('settings');
     if (savedState) {

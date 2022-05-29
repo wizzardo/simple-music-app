@@ -4,11 +4,14 @@ import * as SettingsStore from "../stores/SettingsStore";
 import {classNames} from "react-ui-basics/Tools";
 import {SCROLLBAR_MODE_HIDDEN} from "react-ui-basics/Scrollable";
 import AutocompleteSelect from "react-ui-basics/AutocompleteSelect";
+import {css} from "goober";
 
 const Settings = ({}) => {
     const {format, bitrate} = useStore(SettingsStore.store)
 
-    return <div>
+    return <div className={css`
+      padding: 40px 20px 20px;
+    `}>
         <h2>Settings</h2>
 
         <AutocompleteSelect

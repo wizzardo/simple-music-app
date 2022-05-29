@@ -32,7 +32,6 @@ export default () => {
     `;
 
     const windowSize = useWindowSize();
-    const isMobile = windowSize.width <= 800;
 
     const localCacheDB = useLocalCache();
     useEffect(() => {
@@ -65,11 +64,8 @@ export default () => {
           margin-right: auto;
         `, coverBackground)}>
             <div className={css`
-              padding: ${!isMobile ? '20px' : '20px 0px'};
-              padding-top: 40px;
               box-sizing: border-box;
               min-height: ${windowSize.height}px;
-              padding-bottom: 125px;
 
               background: rgba(255, 255, 255, 0.45);
               backdrop-filter: blur(40px);
@@ -80,6 +76,7 @@ export default () => {
                       position: absolute;
                       top: 10px;
                       left: 10px;
+                      z-index: 1;
 
                       .MaterialIcon {
                         font-size: 20px;
@@ -102,6 +99,7 @@ export default () => {
 
                 <MoreMenu className={css`
                   position: absolute;
+                  z-index: 1;
                   right: 10px;
                   top: 10px;`}
                 />

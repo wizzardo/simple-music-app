@@ -4,6 +4,7 @@ import Table from "react-ui-basics/Table";
 import Size from "react-ui-basics/Size";
 import Button from "react-ui-basics/Button";
 import {Comparators} from "react-ui-basics/Tools";
+import {css} from "goober";
 
 interface CachedAlbum {
     name: string,
@@ -39,7 +40,9 @@ const CacheStats = ({}) => {
             setAlbums(Object.values(albums))
         })()
     }, [localCache, refreshed])
-    return <div>
+    return <div className={css`
+      padding: 60px 20px 20px;
+    `}>
         <Table
             sortBy={'name'}
             data={albums}
@@ -50,10 +53,10 @@ const CacheStats = ({}) => {
                     sortable: true,
                 },
                 {
-                    field: 'songs',
+                    field: '',
                     header: 'Tracks',
                     sortable: false,
-                    formatter: ((it) => it.length)
+                    formatter: ((_, it) => it.songs.length)
                 },
                 {
                     field: 'songs',
@@ -63,7 +66,7 @@ const CacheStats = ({}) => {
                         total += it.size;
                         return total
                     }, 0)}/>),
-                    comparator: Comparators.of(songs => songs.reduce((total, it) => {
+                    comparator: Comparators.of(it => it.songs.reduce((total, it) => {
                         total += it.size;
                         return total
                     }, 0), Comparators.SORT_ASC, null)
