@@ -305,6 +305,7 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
     const cache = useLocalCache()
     const [cachedSong, setCachedSong] = useState<SongDTO>()
     const [inDownloadQueue, setInDownloadQueue] = useState(false)
+    const [downloadRequested, setDownloadRequested] = useState(false)
 
     useEffect(() => {
         cache && (async () => {
@@ -318,7 +319,9 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
         if (cachedSong)
             return
 
-        setInDownloadQueue(!!downloadQueueState.queue.find(it => it.artist === artist.name && it.album === album.name && it.song === song.title))
+        const queued = !!downloadQueueState.queue.find(it => it.artist === artist.name && it.album === album.name && it.song === song.title);
+        setInDownloadQueue(queued)
+        queued && setDownloadRequested(queued)
     }, [cachedSong, downloadQueueState.queue])
 
     const isCurrentSong = queue[position]?.songId === song.id
@@ -342,7 +345,7 @@ const Song = ({artist, album, song}: { artist: ArtistDto, album: AlbumDto, song:
           font-weight: ${isCurrentSong ? 'bold' : 'normal'};
         `}>{song.title}</span>
 
-        {!!cachedSong && <span className={css`
+        {!!cachedSong && downloadRequested && <span className={css`
           display: inline-flex;
           flex-flow: row;
           align-items: center;
