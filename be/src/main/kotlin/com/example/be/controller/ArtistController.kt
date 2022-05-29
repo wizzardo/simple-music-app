@@ -145,7 +145,10 @@ class ArtistController(
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val updated = artistService.mergeAlbums(item, intoAlbumId, data.albums)
-        return ResponseEntity.ok(updated)
+        data.albums.forEach {
+            artistService.delete(updated, it)
+        }
+        return ResponseEntity.ok(artistService.getArtist(artistId))
     }
 
     @PostMapping("/artists/{artistId}/{albumId}/{toArtistId}")
@@ -158,6 +161,9 @@ class ArtistController(
         val toArtist: ArtistDto = artistService.getArtist(toArtistId) ?: return ResponseEntity.notFound().build()
         val album: AlbumDto = fromArtist.albums.find({ it.id == albumId }) ?: return ResponseEntity.notFound().build()
         artistService.move(fromArtist, toArtist, album)
+        if (fromArtist.albums.size == 1) {
+            artistService.delete(fromArtist)
+        }
         return ResponseEntity.noContent().build()
     }
 

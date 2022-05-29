@@ -32,7 +32,7 @@ async function cachedOrFetch(request) {
     return await fetchAndCache(request);
 }
 
-async function fetchOrCachedOnTimeout(request, timeout) {
+async function fetchOrCachedOnTimeout(request, timeout, clientId) {
     const cachedResponse = await caches.match(request);
     if (!cachedResponse)
         return fetchAndCache(request)
@@ -44,10 +44,19 @@ async function fetchOrCachedOnTimeout(request, timeout) {
                 console.log('resolve fetched', request.url)
                 resolve(response)
                 resolved = true
+            } else if (!!clientId) {
+                const contentType = response.headers.get('Content-Type');
+                if ('application/json' === contentType) {
+                    response.json().then(json => {
+                        self.clients.get(clientId).then(client => {
+                            client.postMessage({type: 'FETCH', url: request.url, data: json})
+                        })
+                    })
+                }
             }
         }).catch(reason => {
             if (!resolved) {
-                // console.log('resolve cached on error', request.url, reason)
+                console.log('resolve cached on error', request.url, reason)
                 resolve(cachedResponse)
                 resolved = true
             }
@@ -68,6 +77,7 @@ self.addEventListener('fetch', event => {
         return;
 
     let url = request.url;
+    const clientId = event.clientId;
 
     // if(url.endsWith('/')){
     //     debugger
@@ -89,10 +99,10 @@ self.addEventListener('fetch', event => {
     } else if (url.startsWith(self.location.origin)) {
         if (request.headers.get('Accept').indexOf('text/html') !== -1) {
             event.respondWith(fetchOrCachedOnTimeout(
-                new Request(url.substring(0, url.indexOf('/', 10) + 1), {...request}), 300
+                new Request(url.substring(0, url.indexOf('/', 10) + 1), {...request}), 300, clientId
             ));
         } else
-            event.respondWith(fetchOrCachedOnTimeout(request, 300));
+            event.respondWith(fetchOrCachedOnTimeout(request, 30, clientId));
     }
 });
 

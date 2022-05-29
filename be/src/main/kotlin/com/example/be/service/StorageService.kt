@@ -9,6 +9,7 @@ import com.wizzardo.cloud.storage.Storage
 import com.wizzardo.cloud.storage.degoo.DegooStorage
 import com.wizzardo.cloud.storage.fs.LocalStorage
 import com.wizzardo.cloud.storage.terabox.TeraboxStorage
+import com.wizzardo.cloud.storage.webdav.WebdavStorage
 import com.wizzardo.tools.json.JsonObject
 import com.wizzardo.tools.json.JsonTools
 import org.jooq.JSONB
@@ -54,6 +55,11 @@ class StorageService(
                 System.getenv("STORAGE_S3_BUCKET"),
                 System.getenv("STORAGE_S3_REGION"),
                 CredentialsProvider.createSimpleProvider(System.getenv("STORAGE_S3_KEY_ID"), System.getenv("STORAGE_S3_SECRET"))
+            ) as Storage<FileInfo>
+            "webdav" -> WebdavStorage(
+                System.getenv("STORAGE_WEBDAV_URL"),
+                System.getenv("STORAGE_WEBDAV_USERNAME"),
+                System.getenv("STORAGE_WEBDAV_PASSWORD")
             ) as Storage<FileInfo>
             "degoo" -> DegooStorage(username, password).also {
                 it.setTokenGetterSetter({

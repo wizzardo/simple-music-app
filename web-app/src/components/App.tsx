@@ -39,6 +39,21 @@ export default () => {
         localCacheDB && localCacheDB.deleteUnusedSongData()
     }, [localCacheDB])
 
+    useEffect(() => {
+        navigator.serviceWorker.onmessage = (event) => {
+            console.log(event)
+            const data = event.data;
+            if (data.type === 'FETCH') {
+                let url = new URL(data.url);
+                if (url.pathname === '/artists') {
+                    ArtistsStore.setAll(data.data)
+                } else if (/\/artists\/([0-9]+)/.exec(url.pathname)) {
+                    ArtistsStore.set(data.data)
+                }
+            }
+        };
+    }, [])
+
     return (
         <div className={classNames("App", css`
           background: white;
@@ -71,14 +86,15 @@ export default () => {
                         color: gray;
                       }
                     `)} flat round onClick={e => {
-                        let pathname = window.location.pathname;
-                        let i = pathname.lastIndexOf('/');
-                        if (i === pathname.length - 1)
-                            i = pathname.lastIndexOf('/', i - 1)
-                        pathname = pathname.substring(0, i + 1)
-                        if (!pathname)
-                            pathname = '/'
-                        pushLocation(pathname)
+                        window.history.back()
+                        // let pathname = window.location.pathname;
+                        // let i = pathname.lastIndexOf('/');
+                        // if (i === pathname.length - 1)
+                        //     i = pathname.lastIndexOf('/', i - 1)
+                        // pathname = pathname.substring(0, i + 1)
+                        // if (!pathname)
+                        //     pathname = '/'
+                        // pushLocation(pathname)
                     }}>
                         <MaterialIcon icon={'chevron_left'}/>
                     </Button>}
@@ -90,7 +106,7 @@ export default () => {
                   top: 10px;`}
                 />
 
-                <Route path={"/edit/:artistId?/:album?"}>
+                <Route path={["/edit/artists/:artistId?/:album?", "/edit/albums"]}>
                     <LibraryEditor album={null} artistId={null}/>
                 </Route>
 

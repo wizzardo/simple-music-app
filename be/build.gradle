@@ -43,16 +43,21 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "org.flywaydb:flyway-core:8.5.6"
     implementation 'com.zaxxer:HikariCP:5.0.1'
-    implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
+//    implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
+    implementation files('../../tools/build/libs/tools-all-0.24-SNAPSHOT.jar')
     implementation "org.postgresql:postgresql:$postgresqlVersion"
-    implementation 'com.wizzardo.cloud-storage-webdav:base:1.0-SNAPSHOT'
-    implementation 'com.wizzardo.cloud-storage-webdav:local:1.0-SNAPSHOT'
-    implementation 'com.wizzardo.cloud-storage-webdav:degoo:1.0-SNAPSHOT'
-    implementation 'com.wizzardo.cloud-storage-webdav:terabox:1.0-SNAPSHOT'
-    implementation 'com.wizzardo.cloud-storage-webdav:s3:1.0-SNAPSHOT'
-//    implementation files('../../cloud-storage-webdav/storages/base/build/libs/base-1.0-SNAPSHOT.jar')
-//    implementation files('../../cloud-storage-webdav/storages/local/build/libs/local-1.0-SNAPSHOT.jar')
-//    implementation files('../../cloud-storage-webdav/storages/degoo/build/libs/degoo-1.0-SNAPSHOT.jar')
+//    implementation 'com.wizzardo.cloud-storage-webdav:base:1.0-SNAPSHOT'
+//    implementation 'com.wizzardo.cloud-storage-webdav:local:1.0-SNAPSHOT'
+//    implementation 'com.wizzardo.cloud-storage-webdav:degoo:1.0-SNAPSHOT'
+//    implementation 'com.wizzardo.cloud-storage-webdav:terabox:1.0-SNAPSHOT'
+//    implementation 'com.wizzardo.cloud-storage-webdav:s3:1.0-SNAPSHOT'
+//    implementation 'com.wizzardo.cloud-storage-webdav:webdav:1.0-SNAPSHOT'
+    implementation files('../../cloud-storage-webdav/storages/base/build/libs/base-1.0-SNAPSHOT.jar')
+    implementation files('../../cloud-storage-webdav/storages/local/build/libs/local-1.0-SNAPSHOT.jar')
+    implementation files('../../cloud-storage-webdav/storages/degoo/build/libs/degoo-1.0-SNAPSHOT.jar')
+    implementation files('../../cloud-storage-webdav/storages/terabox/build/libs/terabox-1.0-SNAPSHOT.jar')
+    implementation files('../../cloud-storage-webdav/storages/s3/build/libs/s3-1.0-SNAPSHOT.jar')
+    implementation files('../../cloud-storage-webdav/storages/webdav/build/libs/webdav-1.0-SNAPSHOT.jar')
 
     implementation "org.jooq:jooq:$jooqVersion"
     implementation "org.jooq:jooq-meta:$jooqVersion"
@@ -67,7 +72,7 @@ task jooqGenerate() {
         configuration.with {
             jdbc = new Jdbc().with {
                 driver = 'org.postgresql.Driver'
-                url = 'jdbc:postgresql://localhost:5432/postgres'
+                url = 'jdbc:postgresql://localhost:5435/postgres'
                 user = 'postgres'
                 password = 'Pass2020!'
                 it

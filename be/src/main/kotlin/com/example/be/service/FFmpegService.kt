@@ -19,7 +19,7 @@ import kotlin.collections.HashMap
 class FFmpegService(
     private val songService: SongService
 ) {
-    val bitratePattern = Pattern.compile("([0-9])+ *kb/s")
+    val bitratePattern = Pattern.compile("([0-9]+) *kb/s")
 
     fun getMetaData(f: File): MetaData {
         val command = "./ffprobe -hide_banner -i \"" + f.canonicalPath + "\""
@@ -113,19 +113,19 @@ class FFmpegService(
                 bitrate.toString() + "k",
                 tempOutFile.canonicalPath
             )
-//            println("executing command: ${Arrays.toString(command)}")
+            println("executing command: ${Arrays.toString(command)}")
         val process = Runtime.getRuntime().exec(command)
         val exited = process.waitFor(120, TimeUnit.SECONDS)
         if (!exited) {
             process.destroy()
         }
 
-//            println(stopwatch)
-//            println("output:")
-//            println(String(process.inputStream.readAllBytes()))
-//            println("error:")
-//            val message = String(process.errorStream.readAllBytes())
-//            println(message)
+            println(stopwatch)
+            println("output:")
+            println(String(process.inputStream.readAllBytes()))
+            println("error:")
+            val message = String(process.errorStream.readAllBytes())
+            println(message)
         return tempOutFile
 //            return Files.readAllBytes(tempOutFile.toPath())
     }
@@ -244,7 +244,8 @@ class FFmpegService(
         AAC("audio/aac", "aac", "libfdk_aac"),
         OGG("audio/ogg", "ogg", "libvorbis"),
         OPUS("audio/opus", "opus", "libopus"),
-        FLAC("audio/x-flac", "flac", "flac");
+        FLAC("audio/x-flac", "flac", "flac"),
+        WAV("audio/x-wav", "wav", "wav");
 
     }
 }

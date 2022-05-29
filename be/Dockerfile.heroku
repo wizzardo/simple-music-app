@@ -14,4 +14,4 @@ RUN apk --no-cache add imagemagick
 
 COPY ./build/libs/be-0.0.1-SNAPSHOT.jar .
 
-CMD ["java", "-Dspring.profiles.active=docker", "-Xss512k", "-Xmx192m", "-XX:InitialCodeCacheSize=4096", "-verbose:gc", "-XX:+PrintGCDetails", "-jar", "be-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-XX:HeapDumpPath=/tmp/", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:NativeMemoryTracking=summary", "-XX:OnError=\"jcmd %p VM.native_memory\"", "-Dspring.profiles.active=docker", "-Xss512k", "-Xmx192m", "-XX:InitialCodeCacheSize=4096", "-verbose:gc", "-XX:+PrintGCDetails", "-jar", "be-0.0.1-SNAPSHOT.jar"]
