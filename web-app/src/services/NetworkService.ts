@@ -100,6 +100,10 @@ export default {
     deleteArtist: createDELETE<ArtistDto>('/artists/{id}'),
     deleteSong: createDELETE<ArtistDto>('/artists/{artistId}/{albumId}/{songId}'),
 
+    isLoginRequired: createGET<LoginRequiredResponse>('/login/required'),
+    login: createPOST<LoginResponse, LoginRequest>('/login'),
+
+
 
 
     upload: createMultipart<ArtistDto>('/upload'),
@@ -120,6 +124,19 @@ export interface MergeAlbumsRequest {
 	artistId: number,
 	intoAlbumId: string,
 	albums: Array<string>,
+}
+
+export interface LoginRequest {
+	username: string,
+	password: string,
+}
+
+export interface LoginRequiredResponse {
+	required: boolean,
+}
+
+export interface LoginResponse {
+	validUntil: number,
 }
 
 export interface ArtistDto {
@@ -160,5 +177,6 @@ export enum AudioFormat {
 	OGG = 'OGG',
 	OPUS = 'OPUS',
 	FLAC = 'FLAC',
+	WAV = 'WAV',
 }
 //generated types end

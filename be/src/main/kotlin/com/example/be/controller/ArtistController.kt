@@ -2,10 +2,7 @@ package com.example.be.controller
 
 import com.example.be.db.dto.AlbumDto
 import com.example.be.db.dto.ArtistDto
-import com.example.be.service.ArtistService
-import com.example.be.service.FFmpegService
-import com.example.be.service.SongService
-import com.example.be.service.UploadService
+import com.example.be.service.*
 import com.wizzardo.tools.cache.Cache
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
@@ -51,11 +48,14 @@ class ArtistController(
     )
 
     @GetMapping("/artists")
-    fun getArtists(): List<ArtistDto> = artistService.getArtists()
+    fun getArtists(
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
+    ): List<ArtistDto> = artistService.getArtists()
 
     @GetMapping("/artists/{id}")
     fun getArtist(
-        @PathVariable id: Long
+        @PathVariable id: Long,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(id) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(item)
@@ -65,6 +65,7 @@ class ArtistController(
     fun updateArtist(
         @PathVariable id: Long,
         @RequestBody data: ArtistDto,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(id) ?: return ResponseEntity.notFound().build()
         val updated = artistService.update(id, item, data)
@@ -74,6 +75,7 @@ class ArtistController(
     @DeleteMapping("/artists/{id}")
     fun deleteArtist(
         @PathVariable id: Long,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(id) ?: return ResponseEntity.notFound().build()
         artistService.delete(item)
@@ -84,6 +86,7 @@ class ArtistController(
     fun deleteAlbum(
         @PathVariable artistId: Long,
         @PathVariable albumId: String,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         artistService.delete(item, albumId)
@@ -95,6 +98,7 @@ class ArtistController(
     @PostMapping("/artists/")
     fun createArtist(
         @RequestBody data: CreateArtistRequest,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val artist = artistService.getOrCreateArtist(data.name, data.name.replace("/", " - "))
         return ResponseEntity.ok(artist)
@@ -109,6 +113,7 @@ class ArtistController(
     fun createAlbum(
         @PathVariable artistId: Long,
         @RequestBody data: CreateAlbumRequest,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val albumPath = data.name.replace("/", " - ")
@@ -125,6 +130,7 @@ class ArtistController(
         @PathVariable artistId: Long,
         @PathVariable albumId: String,
         @PathVariable songId: String,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         artistService.delete(item, albumId, songId)
@@ -142,6 +148,7 @@ class ArtistController(
         @PathVariable artistId: Long,
         @PathVariable intoAlbumId: String,
         @RequestBody data: MergeAlbumsRequest,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val updated = artistService.mergeAlbums(item, intoAlbumId, data.albums)
@@ -156,6 +163,7 @@ class ArtistController(
         @PathVariable artistId: Long,
         @PathVariable albumId: String,
         @PathVariable toArtistId: Long,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<Unit> {
         val fromArtist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val toArtist: ArtistDto = artistService.getArtist(toArtistId) ?: return ResponseEntity.notFound().build()
@@ -171,7 +179,8 @@ class ArtistController(
     fun uploadCoverArt(
         @PathVariable artistId: Long,
         @PathVariable albumId: String,
-        @RequestParam("file") file: MultipartFile
+        @RequestParam("file") file: MultipartFile,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<ArtistDto> {
         val item: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val album = item.albums.find { it.id == albumId } ?: return ResponseEntity.notFound().build()
@@ -186,6 +195,7 @@ class ArtistController(
         @PathVariable artistId: Long,
         @PathVariable albumName: String,
         @PathVariable trackNumber: Int,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<InputStreamResource> {
         val artist: ArtistDto = artistService.getArtist(artistId) ?: return ResponseEntity.notFound().build()
         val album: AlbumDto = artist.albums.find { album -> album.name == albumName } ?: return ResponseEntity.notFound().build()
@@ -206,6 +216,7 @@ class ArtistController(
         @PathVariable songIdOrTrackNumber: String,
         @PathVariable format: FFmpegService.AudioFormat,
         @PathVariable bitrate: Int,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<InputStreamResource> {
         val artist: ArtistDto = artistService.getArtist(artistId)
             ?: return ResponseEntity.notFound().build()
@@ -229,6 +240,7 @@ class ArtistController(
         @PathVariable artistIdOrPath: String,
         @PathVariable albumIdOrPath: String,
         @RequestHeader(value = "If-None-Match", required = false) ifNoneMatch: String?,
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
     ): ResponseEntity<InputStreamResource> {
         val artist = artistService.getArtistByIdOrPath(artistIdOrPath) ?: return ResponseEntity.notFound().build()
         val album = songService.getAlbum(artist, albumIdOrPath) ?: return ResponseEntity.notFound().build()

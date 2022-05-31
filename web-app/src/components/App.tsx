@@ -8,6 +8,7 @@ import Player from "./Player";
 import {useStore} from "react-ui-basics/store/Store";
 import * as ArtistsStore from "../stores/ArtistsStore";
 import * as PlayerStore from "../stores/PlayerStore";
+import * as AuthenticationStore from "../stores/AuthenticationStore";
 import {css} from "goober";
 import NetworkService from "../services/NetworkService";
 import CacheStats from "./CacheStats";
@@ -19,6 +20,7 @@ import {pushLocation} from "react-ui-basics/router/HistoryTools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import {useWindowSize} from "../utils/Hooks";
 import {useLocalCache} from "../services/LocalCacheService";
+import LoginForm from "./LoginForm";
 
 export default () => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -52,6 +54,13 @@ export default () => {
             }
         };
     }, [])
+
+    const authenticationState = useStore(AuthenticationStore.store);
+    if(authenticationState.loginRequired === null)
+        return null
+
+    if (authenticationState.loginRequired && authenticationState.tokenValidUntil < new Date().getTime())
+        return <LoginForm/>
 
     return (
         <div className={classNames("App", css`

@@ -17,7 +17,7 @@ class RestResponseEntityExceptionHandler(
 
     @ExceptionHandler(Exception::class)
     fun handleExceptionInternal(ex: Exception, request: WebRequest): ResponseEntity<Any> {
-        if (ex.message == "Missing request attribute 'user' of type UserAccount")
+        if (ex.message == "Missing request attribute 'permissions' of type Set")
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
 
         log.debug(ex.message, ex)
