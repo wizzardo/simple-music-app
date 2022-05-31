@@ -16,6 +16,7 @@ import NetworkService from "../services/NetworkService";
 import WindowActiveStore from "../stores/WindowActiveStore";
 import {useIsSafari} from "../utils/Hooks";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
+import {pushLocation} from "react-ui-basics/router/HistoryTools";
 
 const Player = ({}) => {
     const localCache = useLocalCache();
@@ -35,12 +36,12 @@ const Player = ({}) => {
     const [audio] = useState<HTMLAudioElement>(() => new Audio())
     const [silence] = useState<HTMLAudioElement>(() => new Audio())
 
-    useEffect(()=>{
-        if(!silence)
+    useEffect(() => {
+        if (!silence)
             return
         silence.src = '/static/silence.mp3';
         silence.loop = true;
-    },[silence])
+    }, [silence])
 
     useEffect(() => {
         let updater;
@@ -48,7 +49,7 @@ const Player = ({}) => {
             console.log('on pause', e)
             // PlayerStore.setPlaying(false)
             // clearInterval(updater)
-            PlayerStore.setOffset(audio.currentTime)
+            PlayerStore.setPlayingAndOffset(false, audio.currentTime)
             silence.pause()
         });
 
@@ -338,11 +339,17 @@ const Player = ({}) => {
               margin-left: auto;
               margin-right: auto;
             `}>
-                {song && <FlexRow className={css`
-                  justify-content: center;
-                  flex-wrap: wrap;
-                  height: 33px;
-                `}>
+                {song && <FlexRow
+                    className={css`
+                      justify-content: center;
+                      flex-wrap: wrap;
+                      height: 33px;
+                      cursor: pointer;
+                    `}
+                    onClick={e => {
+                        pushLocation('/' + artist?.id + '/' + album?.path)
+                    }}
+                >
                     <b className={css`
                       white-space: nowrap;
                       overflow: hidden;

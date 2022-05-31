@@ -249,6 +249,7 @@ const ListSongs = ({artistId, albumName}) => {
                 <Button className={classNames('red', css`
                   padding: 10px !important;
                   height: unset;
+                  min-width: 50px !important;
 
                   .MaterialIcon {
                     font-size: 30px;

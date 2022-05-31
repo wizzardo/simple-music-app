@@ -115,12 +115,14 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
                 try {
                     orNoop(success)(JSON.parse(responseText || "{}"));
                 } catch (e) {
-                    console.log(`Unexpected exception while processing response for ${method} ${url}, status: ${status}, response: '${responseText}', exception:`, e)
-                    onError(responseText, status);
+                    const message = `Unexpected exception while processing response for ${method} ${url}, status: ${status}, response: '${responseText}', exception:`;
+                    console.log(message, e)
+                    onError(new FetchError(message, status, responseText))
                 }
             } else {
-                console.log(`Not ok response for ${method} ${url}, status: ${status}, response: '${responseText}'`);
-                onError(responseText, status);
+                const message = `Not ok response for ${method} ${url}, status: ${status}, response: '${responseText}'`;
+                console.log(message);
+                onError(new FetchError(message, status, responseText))
             }
         };
 
@@ -154,3 +156,13 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
     });
 };
 
+class FetchError extends Error {
+    status: number;
+    responseText?: string;
+
+    constructor(message, status: number, responseText?: string) {
+        super(message);
+        this.status = status;
+        this.responseText = responseText;
+    }
+}

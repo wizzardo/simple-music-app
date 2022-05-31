@@ -17,7 +17,7 @@ async function fetchAndCache(request) {
     let contentType = response.headers.get('Content-Type');
     console.log('fetchAndCache', request.url, contentType)
 
-    if (response.status < 300 && contentType && (!contentType.startsWith("audio") || request.url.endsWith('.mp3'))) {
+    if (response.status === 200 && contentType && (!contentType.startsWith("audio") || request.url.endsWith('.mp3'))) {
         const cache = await caches.open(RUNTIME);
         await cache.put(request, response.clone())
     }

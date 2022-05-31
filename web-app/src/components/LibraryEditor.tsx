@@ -56,6 +56,7 @@ const LibraryEditor = ({artistId, album}) => {
     return <div className={css`
       background: white;
       padding: 20px;
+      padding-bottom: 150px;
     `}>
         <FlexRow className={css`
           margin-left: 50px;
