@@ -1,37 +1,97 @@
 package com.example.be.service
 
-import com.example.be.db.dto.AlbumDto
-import com.example.be.db.dto.ArtistDto
-import com.example.be.db.dto.toArtistDto
-import com.example.be.db.generated.tables.pojos.Artist
-import com.example.be.db.repository.ArtistRepository
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.jooq.JSONB
+import com.example.be.db.DBService
+import com.example.be.db.generated.Tables
+import com.example.be.db.model.Artist
+import com.example.be.db.model.Artist.Album
+import com.wizzardo.tools.sql.query.QueryBuilder
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
+import java.util.Date
 
 @Service
 class ArtistService(
-    private val artistRepository: ArtistRepository,
-    private val objectMapper: ObjectMapper,
     private val songsStorageService: SongsStorageService,
     private val randomIdService: RandomIdService,
+    private val dbService: DBService,
 ) {
 
-    fun getArtists(): List<ArtistDto> {
-        return artistRepository.findAll().map { artist -> artist.toArtistDto(objectMapper) }
+    fun findByName(name: String): Artist? = dbService.withBuilder { db -> findByName(db, name) }
+    fun findByName(db: QueryBuilder.WrapConnectionStep, name: String): Artist? {
+        return db.select(Tables.ARTIST.FIELDS)
+            .from(Tables.ARTIST)
+            .where(Tables.ARTIST.NAME.eq(name))
+            .limit(1)
+            .fetchOneInto(Artist::class.java)
     }
 
-    fun getArtist(id: Long): ArtistDto? {
-        return artistRepository.findById(id)?.toArtistDto(objectMapper)
+    fun findById(id: Long): Artist? = dbService.withBuilder { db -> findById(db, id) }
+    fun findById(db: QueryBuilder.WrapConnectionStep, id: Long): Artist? {
+        return db.select(Tables.ARTIST.FIELDS)
+            .from(Tables.ARTIST)
+            .where(Tables.ARTIST.ID.eq(id))
+            .limit(1)
+            .fetchOneInto(Artist::class.java)
     }
 
-    fun getArtistByName(name: String): ArtistDto? {
-        return artistRepository.findByName(name)?.toArtistDto(objectMapper)
+    fun findByPath(path: String): Artist? {
+        return dbService.withBuilder { db ->
+            db.select(Tables.ARTIST.FIELDS)
+                .from(Tables.ARTIST)
+                .where(Tables.ARTIST.PATH.eq(path))
+                .limit(1)
+                .fetchOneInto(Artist::class.java)
+        }
     }
 
-    fun update(id: Long, from: ArtistDto, to: ArtistDto): ArtistDto {
+    fun findByIdOrPath(path: String): Artist? {
+        return dbService.withBuilder { db ->
+            db.select(Tables.ARTIST.FIELDS)
+                .from(Tables.ARTIST)
+                .where(Tables.ARTIST.PATH.eq(path).or(Tables.ARTIST.ID.eq(path.toLongOrNull())))
+                .limit(1)
+                .fetchOneInto(Artist::class.java)
+        }
+    }
+
+    fun updateAlbums(artist: Artist, albums: List<Album>): Int {
+//        println("albums: $albums")
+        return dbService.withBuilder { db ->
+            db.update(Tables.ARTIST)
+                .set(Tables.ARTIST.UPDATED.eq(Date()))
+                .set(Tables.ARTIST.ALBUMS.eq(artist.albums))
+                .where(Tables.ARTIST.ID.eq(artist.id).and(Tables.ARTIST.UPDATED.eq(artist.updated)))
+                .executeUpdate()
+        }
+    }
+
+    fun update(id: Long, data: Artist): Int = dbService.withBuilder { db -> update(db, id, data) }
+    fun update(db: QueryBuilder.WrapConnectionStep, id: Long, data: Artist): Int {
+        return db.update(Tables.ARTIST)
+            .set(Tables.ARTIST.UPDATED.eq(Date()))
+            .set(Tables.ARTIST.ALBUMS.eq(data.albums))
+            .set(Tables.ARTIST.NAME.eq(data.name))
+            .set(Tables.ARTIST.PATH.eq(data.path))
+            .where(Tables.ARTIST.ID.eq(id))
+            .executeUpdate()
+    }
+
+    fun getArtists(): List<Artist> {
+        return dbService.withBuilder { db ->
+            db.select(Tables.ARTIST.FIELDS)
+                .from(Tables.ARTIST)
+                .fetchInto(Artist::class.java)
+        }
+    }
+
+    fun getArtist(id: Long): Artist? {
+        return findById(id)
+    }
+
+    fun getArtistByName(name: String): Artist? {
+        return findByName(name)
+    }
+
+    fun update(id: Long, from: Artist, to: Artist): Artist {
         if (from.name != to.name) {
             val artistPath = to.name.replace("/", " - ")
             to.path = artistPath;
@@ -71,29 +131,29 @@ class ArtistService(
                 }
             }
         }
-        artistRepository.update(id, to, objectMapper)
+        update(id, to)
         return getArtist(id)!!
     }
 
-    fun update(item: ArtistDto): ArtistDto {
-        artistRepository.update(item.id, item, objectMapper)
+    fun update(item: Artist): Artist {
+        update(item.id, item)
         return getArtist(item.id)!!
     }
 
-    fun getArtistByPath(artistPath: String): ArtistDto? {
-        return artistRepository.findByPath(artistPath)?.toArtistDto(objectMapper)
+    fun getArtistByPath(artistPath: String): Artist? {
+        return findByPath(artistPath)
     }
 
-    fun getArtistByIdOrPath(idOrPath: String): ArtistDto? {
-        return artistRepository.findByIdOrPath(idOrPath)?.toArtistDto(objectMapper)
+    fun getArtistByIdOrPath(idOrPath: String): Artist? {
+        return findByIdOrPath(idOrPath)
     }
 
-    fun mergeAlbums(item: ArtistDto, intoAlbumId: String, albums: List<String>): ArtistDto {
+    fun mergeAlbums(item: Artist, intoAlbumId: String, albums: List<String>): Artist {
         val album = item.albums.find { it.id == intoAlbumId } ?: throw IllegalArgumentException("Cannot find album with id ${intoAlbumId}")
-        val songs: MutableList<AlbumDto.Song> = ArrayList(album.songs)
+        val songs: MutableList<Album.Song> = ArrayList(album.songs)
         album.songs = songs
 
-        val mergedAlbums: MutableList<AlbumDto> = ArrayList(item.albums.size - albums.size)
+        val mergedAlbums: MutableList<Album> = ArrayList(item.albums.size - albums.size)
         item.albums.forEach { fromAlbum ->
             if (fromAlbum.id in albums) {
                 fromAlbum.songs.forEach loop@{
@@ -106,12 +166,11 @@ class ArtistService(
         }
 
         item.albums = mergedAlbums
-        artistRepository.update(item.id, item, objectMapper)
+        update(item.id, item)
         return getArtist(item.id)!!
     }
 
-    @Transactional
-    fun move(fromArtist: ArtistDto, toArtist: ArtistDto, album: AlbumDto) {
+    fun move(fromArtist: Artist, toArtist: Artist, album: Album) {
         songsStorageService.createFolder(toArtist, album)
 
         if (album.coverPath != null) {
@@ -121,51 +180,57 @@ class ArtistService(
             songsStorageService.move(fromArtist, album, it, toArtist, album, it)
         }
 
-        fromArtist.albums -= album
-        toArtist.albums += album
-        artistRepository.update(fromArtist.id, fromArtist, objectMapper)
-        artistRepository.update(toArtist.id, toArtist, objectMapper)
+        fromArtist.albums.remove(album)
+        toArtist.albums.add(album)
+        dbService.transaction { db ->
+            update(db, fromArtist.id, fromArtist)
+            update(db, toArtist.id, toArtist)
+        }
     }
 
-    fun delete(item: ArtistDto) {
-        artistRepository.deleteById(item.id)
+    fun delete(item: Artist) {
+        dbService.withBuilder { db ->
+            db.deleteFrom(Tables.ARTIST)
+                .where(Tables.ARTIST.ID.eq(item.id))
+                .executeUpdate()
+        }
         songsStorageService.delete(item)
     }
 
-    fun delete(artist: ArtistDto, albumId: String) {
+    fun delete(artist: Artist, albumId: String) {
         val album = artist.albums.find { it.id == albumId }!!
-        artist.albums -= album
-        artistRepository.update(artist.id, artist, objectMapper)
+        artist.albums.remove(album)
+        update(artist.id, artist)
         songsStorageService.delete(artist, album)
     }
 
-    fun delete(artist: ArtistDto, albumId: String, songId: String) {
+    fun delete(artist: Artist, albumId: String, songId: String) {
         val album = artist.albums.find { it.id == albumId }!!
         val song = album.songs.find { it.id == songId }!!
-        album.songs -= song
-        artistRepository.update(artist.id, artist, objectMapper)
+        album.songs.remove(song)
+        update(artist.id, artist)
         songsStorageService.delete(artist, album, song)
     }
 
-    @Transactional
-    fun getOrCreateArtist(name: String, path: String): ArtistDto {
-        var artist: Artist? = artistRepository.findByName(name)
+    fun getOrCreateArtist(name: String, path: String): Artist = dbService.withBuilder { db-> getOrCreateArtist(db, name, path) }
+    fun getOrCreateArtist(db: QueryBuilder.WrapConnectionStep, name: String, path: String): Artist {
+        var artist: Artist? = findByName(db, name)
         if (artist == null) {
-            artist = createArtistDto(name, path)
-            artistRepository.insert(artist)
+            artist = createArtist(name, path)
+            dbService.insertInto(db, artist, Tables.ARTIST)
         }
-        return artist.toArtistDto(objectMapper)
+        return artist
     }
 
-    private fun createArtistDto(name: String, path: String): Artist = Artist().apply {
-        created = LocalDateTime.now()
-        updated = LocalDateTime.now()
+    private fun createArtist(name: String, path: String): Artist = Artist().apply {
+        created = Date()
+        updated = Date()
         this.name = name
         this.path = path
-        albums = JSONB.valueOf("[]")
+        albums = emptyList()
     }
 
-    fun createAlbum(name: String, path: String): AlbumDto = AlbumDto().apply {
+    fun createAlbum(name: String, path: String): Album = Album().apply {
         id = randomIdService.generateId()
         this.path = path
         this.name = name

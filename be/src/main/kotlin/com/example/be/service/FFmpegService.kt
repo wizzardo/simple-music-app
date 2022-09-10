@@ -1,16 +1,16 @@
 package com.example.be.service
 
-import com.example.be.db.dto.AlbumDto
-import com.example.be.db.dto.ArtistDto
-import com.example.be.misc.TempFileInputStream
+import com.example.be.db.model.Artist
+import com.example.be.db.model.Artist.*
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.io.FileTools
+import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.misc.Stopwatch
-import com.wizzardo.tools.security.MD5
 import org.springframework.stereotype.Service
 import java.io.File
-import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.util.*
+import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import kotlin.collections.HashMap
@@ -22,8 +22,6 @@ class FFmpegService(
     val bitratePattern = Pattern.compile("([0-9]+) *kb/s")
 
     fun getMetaData(f: File): MetaData {
-        val command = "./ffprobe -hide_banner -i \"" + f.canonicalPath + "\""
-//        println("executing command: $command")
         val process = Runtime.getRuntime().exec(arrayOf("./ffprobe", "-hide_banner", "-i", f.canonicalPath))
         process.waitFor()
 //        println("output:")
@@ -31,13 +29,16 @@ class FFmpegService(
 
 //        println("error:")
         var message = String(process.errorStream.readAllBytes())
-//        println(message)
+        println(message)
 
-        val start = message.indexOf("Metadata")
+        val start = message.indexOf(':', message.indexOf("Input #0") + 1)
         if (start == -1)
             return MetaData()
 
-        message = message.substring(start + 9).trim()
+        message = message.substring(start + 1).trim()
+        if (message.startsWith("Metadata:"))
+            message = message.substring(9).trim()
+
         val metadata: MutableMap<String, String> = HashMap()
         for (s in message.split("\n")) {
             val arr = s.trim().split(Regex(": "), 2)
@@ -68,7 +69,7 @@ class FFmpegService(
         )
     }
 
-    fun convert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): File {
+    fun convert(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): File {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == AudioFormat.FLAC)
             if (audio.contains("flac"))
@@ -127,7 +128,6 @@ class FFmpegService(
             val message = String(process.errorStream.readAllBytes())
             println(message)
         return tempOutFile
-//            return Files.readAllBytes(tempOutFile.toPath())
     }
 
     fun extractCoverArt(audio: File, to: File) {
@@ -229,14 +229,14 @@ class FFmpegService(
     }
 
     class MetaData(
-        val date: String? = null,
-        val album: String? = null,
-        val artist: String? = null,
-        val title: String? = null,
-        val track: Int? = null,
-        val comment: String? = null,
-        val duration: String? = null,
-        val streams: List<String> = emptyList(),
+        var date: String? = null,
+        var album: String? = null,
+        var artist: String? = null,
+        var title: String? = null,
+        var track: Int? = null,
+        var comment: String? = null,
+        var duration: String? = null,
+        var streams: List<String> = emptyList(),
     )
 
     enum class AudioFormat(val mimeType: String, val extension: String, val codec: String) {

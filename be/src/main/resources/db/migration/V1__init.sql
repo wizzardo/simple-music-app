@@ -1,4 +1,4 @@
-CREATE TABLE artist (
+CREATE TABLE IF NOT EXISTS artist (
     id BIGSERIAL PRIMARY KEY,
     created TIMESTAMP,
     updated TIMESTAMP,

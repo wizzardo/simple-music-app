@@ -4,7 +4,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 
-class TempFileInputStream(val file: File) : InputStream() {
+class TempFileInputStream(val file: File, val deleteOnClose: Boolean = true) : InputStream() {
     val stream: InputStream
 
     init {
@@ -36,7 +36,8 @@ class TempFileInputStream(val file: File) : InputStream() {
 
     fun onEnd() {
         stream.close()
-        file.delete()
+        if (deleteOnClose)
+            file.delete()
     }
 
     fun length(): Long {

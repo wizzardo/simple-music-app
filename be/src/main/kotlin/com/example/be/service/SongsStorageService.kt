@@ -1,7 +1,8 @@
 package com.example.be.service
 
-import com.example.be.db.dto.AlbumDto
-import com.example.be.db.dto.ArtistDto
+import com.example.be.db.model.Artist
+import com.example.be.db.model.Artist.Album
+import com.example.be.db.model.Artist.Album.Song
 import com.wizzardo.tools.security.AES
 import com.wizzardo.tools.security.Base64
 import org.springframework.beans.factory.annotation.Value
@@ -32,62 +33,62 @@ class SongsStorageService(
         keyGenerator.init(128)
     }
 
-    private fun ArtistDto.path(): String {
+    private fun Artist.path(): String {
         if (useIdAsName)
             return this.id.toString()
         return this.path
     }
 
-    private fun AlbumDto.path(): String {
+    private fun Album.path(): String {
         if (useIdAsName)
             return this.id
         return this.path
     }
 
-    private fun AlbumDto.coverPath(): String? {
+    private fun Album.coverPath(): String? {
         if (useIdAsName)
             return this.id + ".bin"
         return this.coverPath
     }
 
-    private fun AlbumDto.Song.path(): String {
+    private fun Song.path(): String {
         if (useIdAsName)
             return this.id + ".bin"
         return this.path
     }
 
-    fun createFolder(artist: ArtistDto, album: AlbumDto) = storageService.createFolder("${artist.path()}/${album.path()}")
+    fun createFolder(artist: Artist, album: Album) = storageService.createFolder("${artist.path()}/${album.path()}")
 
-    fun createFolder(artist: ArtistDto) = storageService.createFolder(artist.path())
+    fun createFolder(artist: Artist) = storageService.createFolder(artist.path())
 
-    fun move(from: ArtistDto, to: ArtistDto, album: AlbumDto, song: AlbumDto.Song) {
+    fun move(from: Artist, to: Artist, album: Album, song: Song) {
         storageService.move("${from.path()}/${album.path()}/${song.path()}", "${to.path()}/${album.path()}/${song.path()}")
     }
 
-    fun move(from: ArtistDto, albumFrom: AlbumDto, to: ArtistDto, albumTo: AlbumDto, song: AlbumDto.Song) {
+    fun move(from: Artist, albumFrom: Album, to: Artist, albumTo: Album, song: Song) {
         storageService.move("${from.path()}/${albumFrom.path()}/${song.path()}", "${to.path()}/${albumTo.path()}/${song.path()}")
     }
 
-    fun move(from: ArtistDto, albumFrom: AlbumDto, songFrom: AlbumDto.Song, to: ArtistDto, albumTo: AlbumDto, songTo: AlbumDto.Song) {
+    fun move(from: Artist, albumFrom: Album, songFrom: Song, to: Artist, albumTo: Album, songTo: Song) {
         storageService.move("${from.path()}/${albumFrom.path()}/${songFrom.path()}", "${to.path()}/${albumTo.path()}/${songTo.path()}")
     }
 
-    fun moveCover(from: ArtistDto, to: ArtistDto, album: AlbumDto) {
+    fun moveCover(from: Artist, to: Artist, album: Album) {
         storageService.move("${from.path()}/${album.path()}/${album.coverPath()}", "${to.path()}/${album.path()}/${album.coverPath()}")
     }
 
-    fun moveCover(from: ArtistDto, albumFrom: AlbumDto, to: ArtistDto, albumTo: AlbumDto) {
+    fun moveCover(from: Artist, albumFrom: Album, to: Artist, albumTo: Album) {
         storageService.move("${from.path()}/${albumFrom.path()}/${albumFrom.coverPath()}", "${to.path()}/${albumTo.path()}/${albumTo.coverPath()}")
     }
 
-    fun delete(artist: ArtistDto) {
+    fun delete(artist: Artist) {
         artist.albums.forEach {
             delete(artist, it)
         }
         storageService.delete(artist.path())
     }
 
-    fun delete(artist: ArtistDto, album: AlbumDto) {
+    fun delete(artist: Artist, album: Album) {
         album.songs.forEach {
             delete(artist, album, it)
         }
@@ -98,11 +99,11 @@ class SongsStorageService(
         storageService.delete("${artist.path()}/${album.path()}")
     }
 
-    fun delete(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song) {
+    fun delete(artist: Artist, album: Album, song: Song) {
         storageService.delete("${artist.path()}/${album.path()}/${song.path()}")
     }
 
-    fun getStream(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song): InputStream {
+    fun getStream(artist: Artist, album: Album, song: Song): InputStream {
         val stream = storageService.getStream("${artist.path()}/${album.path()}/${song.path()}")
         if (song.encryptionKey.isEmpty())
             return stream
@@ -110,7 +111,7 @@ class SongsStorageService(
         return decrypt(song.encryptionKey, stream)
     }
 
-    fun getCoverAsStream(artist: ArtistDto, album: AlbumDto): InputStream {
+    fun getCoverAsStream(artist: Artist, album: Album): InputStream {
         val stream = storageService.getStream("${artist.path()}/${album.path()}/${album.coverPath()}")
         if (album.coverEncryptionKey.isNullOrEmpty())
             return stream
@@ -118,7 +119,7 @@ class SongsStorageService(
         return decrypt(album.coverEncryptionKey!!, stream)
     }
 
-    fun put(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, file: File) {
+    fun put(artist: Artist, album: Album, song: Song, file: File) {
         if (song.encryptionKey.isNotEmpty()) {
             val tempFile = File.createTempFile("enc", "file")
 
@@ -137,7 +138,7 @@ class SongsStorageService(
             storageService.put("${artist.path()}/${album.path()}/${song.path()}", file)
     }
 
-    fun putCover(artist: ArtistDto, album: AlbumDto, bytes: ByteArray) {
+    fun putCover(artist: Artist, album: Album, bytes: ByteArray) {
         if (!album.coverEncryptionKey.isNullOrEmpty()) {
             val aes = AES(Base64.decodeFast(album.coverEncryptionKey, true))
             val encrypted = aes.encrypt(bytes)
@@ -152,7 +153,7 @@ class SongsStorageService(
         return Base64.encodeToString(key.encoded, false, true)
     }
 
-    private fun decrypt(encryptionKey: String, inputStream: InputStream): InputStream {
+    fun decrypt(encryptionKey: String, inputStream: InputStream): InputStream {
         val key = AES.generateKey(Base64.decode(encryptionKey, true))
         val iv = key.encoded
         val paramSpec: AlgorithmParameterSpec = IvParameterSpec(iv)
@@ -176,7 +177,7 @@ class SongsStorageService(
         }
     }
 
-    private fun encrypt(encryptionKey: String, inputStream: InputStream, outputStream: OutputStream) {
+    fun encrypt(encryptionKey: String, inputStream: InputStream, outputStream: OutputStream) {
         val key = AES.generateKey(Base64.decode(encryptionKey, true))
         val iv = key.encoded
         val paramSpec: AlgorithmParameterSpec = IvParameterSpec(iv)

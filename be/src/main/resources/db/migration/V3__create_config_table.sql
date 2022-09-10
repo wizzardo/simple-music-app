@@ -1,4 +1,4 @@
-CREATE TABLE config (
+CREATE TABLE IF NOT EXISTS config (
     id BIGSERIAL PRIMARY KEY,
     created TIMESTAMP,
     updated TIMESTAMP,

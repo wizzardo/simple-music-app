@@ -1,2 +1,2 @@
 alter table artist
-    add column path varchar(256);
+    add column IF NOT EXISTS path varchar(256);

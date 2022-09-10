@@ -1,8 +1,5 @@
 package com.example.be.service
 
-import com.example.be.db.generated.tables.pojos.Config
-import com.example.be.db.repository.ConfigRepository
-import com.wizzardo.cloud.storage.CredentialsProvider
 import com.wizzardo.cloud.storage.FileInfo
 import com.wizzardo.cloud.storage.S3Storage
 import com.wizzardo.cloud.storage.Storage
@@ -12,7 +9,6 @@ import com.wizzardo.cloud.storage.terabox.TeraboxStorage
 import com.wizzardo.cloud.storage.webdav.WebdavStorage
 import com.wizzardo.tools.json.JsonObject
 import com.wizzardo.tools.json.JsonTools
-import org.jooq.JSONB
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.File
@@ -31,7 +27,6 @@ class StorageService(
     private val username: String?,
     @Value("\${storage.password:}")
     private val password: String?,
-    private val configRepository: ConfigRepository,
 ) : Storage<FileInfo> {
 
     protected val storage: Storage<FileInfo>

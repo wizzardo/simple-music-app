@@ -1,6 +1,6 @@
 package com.example.be.controller
 
-import com.example.be.db.dto.ArtistDto
+import com.example.be.db.model.Artist
 import com.example.be.service.AuthenticationService
 import com.example.be.service.UploadService
 import org.springframework.http.ResponseEntity
@@ -17,7 +17,7 @@ class UploadController(
         @RequestParam("artistId", required = false) artistId: Long?,
         @RequestParam("albumId", required = false) albumId: String?,
         @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
-    ): ResponseEntity<ArtistDto> {
+    ): ResponseEntity<Artist> {
         return uploadService.upload(file, artistId, albumId)
     }
 
