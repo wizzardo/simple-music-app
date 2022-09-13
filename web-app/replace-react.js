@@ -32,6 +32,7 @@ ls('buildts', file => {
     data = data.replace(/from '(\.\.\/)*(node_modules\/)?react(-dom)?\/index.js'/, `from 'preact/compat'`)
     data = data.replace(/import '(\.\.\/)*(node_modules\/)?react(-dom)?\/index.js'/, `import 'preact/compat'`)
     data = data.replace('import react from \'../index.js\'', `import {default as react} from 'preact/compat'`)
+    data = data.replace(/import reactDom from '(\.\.\/)*react-dom\/index.js'/, `import {default as reactDom} from 'preact/compat'`)
     data = data.replace(/import propTypes from '(\.\.\/)*prop-types\/index.js'/, `import propTypes from 'prop-types'`)
     data = data.replace(/import PropTypes from '(\.\.\/)*prop-types\/index.js'/, `import PropTypes from 'prop-types'`)
     data = data.replace(/from '(\.\.\/)*(node_modules\/)?react\/jsx-runtime.js'/, `from 'preact/jsx-runtime'`)
