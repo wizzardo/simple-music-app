@@ -18,12 +18,19 @@ import * as SettingsStore from "../stores/SettingsStore";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {DownloadTask} from "../stores/DownloadQueueStore";
 import {useWindowSize} from "../utils/Hooks";
+import NavLink from "react-ui-basics/router/NavLink";
 
 
 const Cover = styled("img")`
   border-radius: 4px;
   max-width: 100%;
   max-height: 150px;
+`;
+const SmallCover = styled("img")`
+  max-width: 75px;
+  max-height: 75px;
+  min-width: 75px;
+  min-height: 75px;
 `;
 const Album = styled("div")`
   display: inline-flex;
@@ -51,6 +58,17 @@ const AlbumArtist = styled("span")`
   font-size: 12px;
   text-align: center;
 `;
+
+const LinkStyles = css`
+  margin-right: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: gray;
+`
+const LinkActiveStyles = css`
+  color: #038acc;
+`
 
 const Library = ({artistId, album}) => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -81,14 +99,28 @@ const Library = ({artistId, album}) => {
 
       > .viewport {
         text-align: center;
-        padding-top: 40px;
+        padding-top: 19px;
       }
     `}>
+        <FlexRow className={css`
+          margin-left: 50px;
+          margin-bottom: 20px;
+        `}>
+            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/artists/'} highlightPath={'/artists/*'}>Artists</NavLink>
+            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/albums/'} highlightPath={'/albums/*'}>Albums</NavLink>
+        </FlexRow>
+
         <Route path={"/"}>
             <ListArtists cardWidth={albumCardWidth}/>
         </Route>
-        <Route path={"/:artistId"}>
-            <ListAlbums cardWidth={albumCardWidth} artistId={null}/>
+        <Route path={"/albums"}>
+            <ListAlbums cardWidth={albumCardWidth}/>
+        </Route>
+        <Route path={"/artists"}>
+            <ListArtists cardWidth={albumCardWidth}/>
+        </Route>
+        <Route path={"/:artistId(^[0-9]+$)?"}>
+            <ListArtistAlbums cardWidth={albumCardWidth} artistId={null}/>
         </Route>
         <Route path={"/:artistId/:albumName"}>
             <ListSongs albumName={null} artistId={null}/>
@@ -98,7 +130,7 @@ const Library = ({artistId, album}) => {
 
 export default Library;
 
-const ListArtists = ({cardWidth}) => {
+const ListAlbums = ({cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
     const albums = artistsStore.ids.map(id => artistsStore.map[id].albums.map(it => ({...it, artistId: id}))).flat()
 
@@ -106,13 +138,15 @@ const ListArtists = ({cardWidth}) => {
         NetworkService.getArtists().then(ArtistsStore.setAll)
     }, [])
 
+    albums.sort(Comparators.of(it => it.name, Comparators.SORT_ASC, albums))
+
     return <>
         {albums.map(it => <Album className={css`
           width: ${cardWidth};
         `} onClick={e => {
             pushLocation(`/${it.artistId}/${it.name}`)
         }}>
-            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artistsStore.map[it.artistId].id + '/' + it.id + '/' + it.coverPath} alt={it.name}/>}
+            {it?.coverPath && <AlbumCover artistId={it.artistId} album={it}/>}
             {!it?.coverPath && <MaterialIcon className={css`
               font-size: 50px;
             `} icon={'album'}/>}
@@ -123,30 +157,152 @@ const ListArtists = ({cardWidth}) => {
     </>
 }
 
+const Artist = styled("div")`
+  display: inline-flex;
+  flex-flow: column nowrap;
+  padding: 5px;
+  align-items: center;
+  width: 200px;
+  box-sizing: border-box;
 
-const ListAlbums = ({artistId, cardWidth}) => {
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const AlbumCover = ({artistId, album}) => <Cover src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath} alt={album.name}/>
+const SmallAlbumCover = ({artistId, album}) => <SmallCover src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath} alt={album.name}/>
+
+const ListArtists = ({cardWidth}) => {
+    const artistsStore = useStore(ArtistsStore.store)
+
+    useEffect(() => {
+        NetworkService.getArtists().then(ArtistsStore.setAll)
+    }, [])
+
+    let ids = artistsStore.ids.filter(id => artistsStore.map[id].albums.length > 0);
+    ids.sort(Comparators.of(id => artistsStore.map[id].name, Comparators.SORT_ASC, ids))
+    return <FlexRow className={css`
+      flex-flow: row wrap;
+      justify-content: center;
+      align-items: start;
+    `}>
+        {ids.map(id => {
+            const artist = artistsStore.map[id];
+
+            let albumsWithCovers = artist.albums.filter(it => !!it.coverPath)
+            if (albumsWithCovers.length > 4) {
+                albumsWithCovers.sort(Comparators.of(getAlbumDuration, Comparators.SORT_DESC, albumsWithCovers))
+            }
+
+            return <Artist className={css`
+              width: ${cardWidth};
+            `} onClick={e => {
+                if (artist.albums.length > 1)
+                    pushLocation(`/${id}/`)
+                else
+                    pushLocation(`/${id}/${artist.albums[0].name}`)
+            }}>
+                {/*{artist.albums.length===1 && }*/}
+                {albumsWithCovers.length === 1 &&
+                    <AlbumCover artistId={id} album={albumsWithCovers[0]}/>}
+                {(albumsWithCovers.length === 2 || albumsWithCovers.length === 3) &&
+                    <FlexColumn className={css`
+                      border-radius: 4px;
+                      overflow: hidden;
+                    `}>
+                        <FlexRow>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
+                        </FlexRow>
+                        <FlexRow>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
+                        </FlexRow>
+                    </FlexColumn>}
+                {albumsWithCovers.length >= 4 &&
+                    <FlexColumn className={css`
+                      border-radius: 4px;
+                      overflow: hidden;
+                    `}>
+                        <FlexRow>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
+                        </FlexRow>
+                        <FlexRow>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[2]}/>
+                            <SmallAlbumCover artistId={id} album={albumsWithCovers[3]}/>
+                        </FlexRow>
+                    </FlexColumn>}
+                {albumsWithCovers.length === 0 && <MaterialIcon className={css`
+                  font-size: 50px;
+                `} icon={'album'}/>}
+                <AlbumArtist>{artist.name}</AlbumArtist>
+                <AlbumDuration>{artist.albums.length} {artist.albums.length === 1 ? 'album' : 'albums'}</AlbumDuration>
+            </Artist>;
+        })}
+    </FlexRow>
+}
+
+
+const ListArtistAlbums = ({artistId, cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
     const artist = artistsStore.map[artistId];
-    const albums = artist?.albums || []
+    const albums = [...(artist?.albums || [])]
 
     useEffect(() => {
         artistId && NetworkService.getArtist({id: artistId}).then(ArtistsStore.set)
     }, [artistId])
 
+    albums.sort(Comparators.of(it => it.name, Comparators.SORT_ASC, albums))
+
     return <>
-        {albums.map(it => <Album className={css`
-          width: ${cardWidth};
-        `} onClick={e => {
-            pushLocation(`/${artistId}/${it.name}`)
-        }}>
-            {it?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.id + '/' + it.id + '/' + it.coverPath} alt={it.name}/>}
-            {!it?.coverPath && <MaterialIcon className={css`
-              font-size: 50px;
-            `} icon={'album'}/>}
-            <AlbumTitle>{it.name}</AlbumTitle>
-            <AlbumArtist>{artist.name}</AlbumArtist>
-            <AlbumDuration>{formatDuration(getAlbumDuration(it))}</AlbumDuration>
-        </Album>)}
+        <FlexRow className={css`
+          justify-content: space-between;
+          padding: 0 40px;
+        `}>
+            <span className={css`
+              font-size: 16px;
+            `}>
+                {artist?.name}
+            </span>
+
+            <Button className={classNames('red', css`
+              padding: 10px !important;
+              height: unset;
+              min-width: 50px !important;
+
+              .MaterialIcon {
+                font-size: 30px;
+                color: white;
+              }
+            `)} flat round onClick={e => PlayerStore.play(albums.flatMap(album => album.songs.map(it => ({
+                artistId: artist.id,
+                albumId: album.id,
+                songId: it.id
+            }))))}>
+                <MaterialIcon icon={'play_arrow'}/>
+            </Button>
+        </FlexRow>
+        <FlexRow className={css`
+          flex-flow: row wrap;
+          justify-content: center;
+          align-items: start;
+        `}>
+            {albums.map(it => <Album className={css`
+              width: ${cardWidth};
+            `} onClick={e => {
+                pushLocation(`/${artistId}/${it.name}`)
+            }}>
+                {it?.coverPath && <AlbumCover artistId={artistId} album={it}/>}
+                {!it?.coverPath && <MaterialIcon className={css`
+                  font-size: 50px;
+                `} icon={'album'}/>}
+                <AlbumTitle>{it.name}</AlbumTitle>
+                <AlbumArtist>{artist.name}</AlbumArtist>
+                <AlbumDuration>{formatDuration(getAlbumDuration(it))}</AlbumDuration>
+            </Album>)}
+        </FlexRow>
     </>
 }
 
@@ -206,7 +362,6 @@ const ListSongs = ({artistId, albumName}) => {
     let isMobile = window.innerWidth <= 800;
 
     return <FlexRow className={css`
-      padding-top: 40px;
       margin: ${isMobile ? 0 : '20px'};
       margin-bottom: 0;
       flex-flow: row ${isMobile ? 'wrap' : 'nowrap'};

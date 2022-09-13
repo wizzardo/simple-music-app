@@ -108,7 +108,7 @@ export default () => {
 
                 <MoreMenu className={css`
                   position: absolute;
-                  z-index: 1;
+                  z-index: 10;
                   right: 10px;
                   top: 10px;`}
                 />
@@ -125,7 +125,7 @@ export default () => {
                     <Settings/>
                 </Route>
 
-                <Route path={"/:artistId(^[0-9]+$)?/:album?"}>
+                <Route path={["/:artistId(^[0-9]+$)?/:album?", "/artists", "/albums"]}>
                     <Library artistId={null} album={null}/>
                 </Route>
 
