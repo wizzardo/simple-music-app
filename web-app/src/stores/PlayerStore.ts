@@ -51,12 +51,16 @@ export const setPlaying = (playing: boolean) => {
     store.set(state => {
         state.playing = playing
     });
+    if (!playing)
+        saveState()
 }
 export const setPlayingAndOffset = (playing: boolean, offset: number) => {
     store.set(state => {
         state.playing = playing
         state.offset = offset
     });
+    if (!playing)
+        saveState()
 }
 export const setOffset = (offset: number) => {
     store.set(state => {
@@ -85,9 +89,11 @@ export const prev = () => {
     });
 }
 
-addEventListener(WINDOW, 'beforeunload', evt => {
+const saveState = () => {
     localStorage.setItem('playerState', JSON.stringify(store.get()));
-}, {});
+};
+
+addEventListener(WINDOW, 'beforeunload', saveState, {});
 
 (() => {
     let savedState = localStorage.getItem('playerState');

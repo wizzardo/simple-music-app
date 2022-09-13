@@ -1,6 +1,6 @@
 import Button from "react-ui-basics/Button";
 import AutocompleteSelect from "react-ui-basics/AutocompleteSelect";
-import {classNames} from "react-ui-basics/Tools";
+import {classNames, orNoop} from "react-ui-basics/Tools";
 import {css} from "goober";
 import {SCROLLBAR_MODE_HIDDEN} from "react-ui-basics/Scrollable";
 import {pushLocation} from "react-ui-basics/router/HistoryTools";
@@ -11,6 +11,13 @@ import React from "react";
 const MenuIcon = () => <Button flat={true} round={true}>
     <i className="material-icons">more_vert</i>
 </Button>;
+
+const DummyChild = ({id, label, dataConsumer, onClick}) => {
+    orNoop(dataConsumer)(label || id);
+    if (id === 'separator')
+        return label
+    return <div className={`DummyChild`} onClick={onClick}>{label || id}</div>
+};
 
 const MoreMenu = ({className}) => <AutocompleteSelect
     className={classNames(css`
@@ -29,9 +36,13 @@ const MoreMenu = ({className}) => <AutocompleteSelect
           margin-right: 4px;
         }
 
-        .ItemWrapper.selected {
-          padding-left: 15px;
-          margin-left: -5px;
+        .ItemWrapper {
+          height: unset;
+
+          &.selected {
+            padding-left: 15px;
+            margin-left: -5px;
+          }
         }
       }
 
@@ -64,10 +75,18 @@ const MoreMenu = ({className}) => <AutocompleteSelect
         v === 'cache' && pushLocation('/cache')
     }}
     data={[
+        // 'separator',
         'settings',
         'cache',
     ]}
+    childComponent={DummyChild}
     labels={{
+        'separator': <FlexRow className={css`
+          height: 1px;
+          width: 100%;
+          background: gray;
+        `}>
+        </FlexRow>,
         'settings': <FlexRow>
             <MaterialIcon icon={'settings'}/>
             Settings

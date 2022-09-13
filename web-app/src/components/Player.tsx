@@ -46,15 +46,39 @@ const Player = ({}) => {
     useEffect(() => {
         let updater;
         audio.addEventListener('pause', (e) => {
-            console.log('on pause', e)
+            const {queue, position} = PlayerStore.store.get();
+
+            const queuedSong = queue[position]
+            const artist = ArtistsStore.store.get().map[queuedSong?.artistId];
+            const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
+            const song = album?.songs?.find(it => it.id === queuedSong?.songId);
+            const duration = song?.duration / 1000
+
+            console.log(new Date().toISOString(), 'on pause', e, audio.currentTime, duration, duration - audio.currentTime)
             // PlayerStore.setPlaying(false)
             // clearInterval(updater)
-            PlayerStore.setPlayingAndOffset(false, audio.currentTime)
-            silence.pause()
+            if (duration - audio.currentTime > 0.01) {
+                PlayerStore.setPlayingAndOffset(false, audio.currentTime)
+                silence.pause()
+            }
+        });
+        audio.addEventListener('ended', (e) => {
+            const {queue, position} = PlayerStore.store.get();
+
+            const queuedSong = queue[position]
+            const artist = ArtistsStore.store.get().map[queuedSong?.artistId];
+            const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
+            const song = album?.songs?.find(it => it.id === queuedSong?.songId);
+            const duration = song?.duration / 1000
+
+            console.log(new Date().toISOString(), 'on ended', e, audio.currentTime, duration, duration - audio.currentTime)
+
+            console.log(new Date().toISOString(), 'PlayerStore.next()')
+            PlayerStore.next()
         });
 
         audio.addEventListener('play', (e) => {
-            console.log('on play', e)
+            console.log(new Date().toISOString(), 'on play', e)
             PlayerStore.setPlaying(true)
             silence.play() // otherwise bluetooth headphones makes a pop sound in between tracks
 
@@ -77,7 +101,7 @@ const Player = ({}) => {
                     ]
                 });
 
-                console.log('setPositionState', duration, audio.currentTime)
+                console.log(new Date().toISOString(), 'setPositionState', duration, audio.currentTime)
                 navigator.mediaSession.setPositionState({
                     duration,
                     position: audio.currentTime > duration ? 0 : audio.currentTime,
@@ -108,7 +132,7 @@ const Player = ({}) => {
             //         PlayerStore.next()
             //     });
             // }
-            console.log('start updater', duration)
+            console.log(new Date().toISOString(), 'start updater', duration)
 
             // if (navigator.mediaSession) {
             //     navigator.mediaSession.setPositionState({duration, position: audio.currentTime, playbackRate: 1})
@@ -126,10 +150,11 @@ const Player = ({}) => {
                 const progress = position / duration * 100
                 if (!WindowActiveStore.get().hidden)
                     setProgress(Math.min(progress, 100))
-                if (progress > 100) {
+                if (progress >= 100) {
                     // audio.pause()
                     clearInterval(interval)
-                    PlayerStore.next()
+                    // console.log(new Date().toISOString(), 'PlayerStore.next()')
+                    // PlayerStore.next()
                 }
             }, 1000 / 30);
             // setUpdater(interval)
@@ -137,10 +162,10 @@ const Player = ({}) => {
         });
 
         audio.addEventListener('loadeddata', async ev => {
-            console.log('loadeddata', ev)
+            console.log(new Date().toISOString(), 'loadeddata', ev)
             const {playing, queue, position} = PlayerStore.store.get();
-            if (!playing)
-                return
+            // if (!playing)
+            //     return
 
             try {
                 await audio.play()
@@ -174,14 +199,18 @@ const Player = ({}) => {
                         PlayerStore.next()
                     });
                     navigator.mediaSession.setActionHandler('stop', () => {
-                        console.log('mediaSession on stop')
+                        console.log(new Date().toISOString(), 'mediaSession on stop')
                         PlayerStore.setPlayingAndOffset(false, 0)
                         audio.pause()
                     });
                     navigator.mediaSession.setActionHandler('pause', () => {
-                        console.log('mediaSession on pause')
+                        console.log(new Date().toISOString(), 'mediaSession on pause')
                         PlayerStore.setPlayingAndOffset(false, audio.currentTime)
                         audio.pause()
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => {
+                        console.log(new Date().toISOString(), 'mediaSession on play')
+                        PlayerStore.setPlaying(true)
                     });
 
                     navigator.mediaSession.setActionHandler('seekto', (e) => {
@@ -190,7 +219,7 @@ const Player = ({}) => {
                         else
                             audio.currentTime = e.seekTime;
 
-                        console.log('setPositionState', duration, audio.currentTime)
+                        console.log(new Date().toISOString(), 'setPositionState', duration, audio.currentTime)
 
                         navigator.mediaSession.setPositionState({
                             duration,
@@ -228,13 +257,13 @@ const Player = ({}) => {
             URL.revokeObjectURL(audio.dataset.objectUrl)
 
             const cachedSong = await localCache.songByUrl(audioUrl);
-            console.log('songByUrl', cachedSong, audioUrl)
+            console.log(new Date().toISOString(), 'songByUrl', cachedSong, audioUrl)
 
             const loadAudio = async (song: Song, data) => {
-                console.log('decoding', song)
+                console.log(new Date().toISOString(), 'decoding', song)
                 if (!audio.paused) {
                     audio.pause()
-                    console.log('paused')
+                    console.log(new Date().toISOString(), 'paused')
                 }
 
                 if (data.byteLength === 0) {
@@ -260,7 +289,7 @@ const Player = ({}) => {
             };
 
             if (!cachedSong) {
-                console.log('downloading', audioUrl)
+                console.log(new Date().toISOString(), 'downloading', audioUrl)
                 DownloadQueueStore.download(
                     audioUrl,
                     artist.name,
@@ -294,7 +323,7 @@ const Player = ({}) => {
         if (!audio)
             return
 
-        console.log('set offset', offset, playing)
+        console.log(new Date().toISOString(), 'set offset', offset, playing)
         audio.currentTime = offset
         audio.play().catch(console.error)
 

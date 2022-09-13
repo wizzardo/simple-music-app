@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from 'react';
-import * as DialogStore  from "../stores/DialogStore";
+import * as DialogStore from "../stores/DialogStore";
 import Modal from 'react-ui-basics/Modal'
 import 'react-ui-basics/Dialog.css'
 import {classNames} from "react-ui-basics/Tools";
 import Button from "react-ui-basics/Button";
 import {useStore} from "react-ui-basics/store/Store";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
+import {css} from 'goober';
 
 export default () => {
     const {show, accept, cancel, onAccept, onCancel, title, description, buttons} = useStore(DialogStore.store)
@@ -26,13 +27,23 @@ export default () => {
     // console.log('Dialog.render', show)
 
     return <Modal
-        className={classNames('DialogModal')}
+        className={classNames('DialogModal', css`
+          > .overlay {
+            transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: rgb(0 0 0 / 0%);
+
+            &.show {
+              background-color: rgb(0 0 0 / 67%);
+            }
+          }
+        `)}
         open={open => setOpen(() => open)}
         close={close => setClose(() => close)}
         onClose={() => {
             DialogStore.hide()
             onCancel?.()
         }}
+        container={document.getElementById('root')}
         closeIcon={<MaterialIcon icon={'close'}/>}
     >
         <div className="Dialog">
