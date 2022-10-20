@@ -1,13 +1,13 @@
-import {ElementType} from 'react'
+import {ElementType, ReactNode} from 'react'
 import {Store} from 'react-ui-basics/store/Store'
 
 export interface DialogState {
     show: boolean,
-    accept: string | ElementType,
-    cancel: string | ElementType,
-    title: string | ElementType,
-    description: string | ElementType,
-    buttons: ElementType,
+    accept: ReactNode,
+    cancel: ReactNode,
+    title: ReactNode,
+    description: ReactNode,
+    buttons: ReactNode,
     onAccept: () => void,
     onCancel: () => void,
 }

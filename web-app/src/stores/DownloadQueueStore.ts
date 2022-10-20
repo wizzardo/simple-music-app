@@ -32,6 +32,13 @@ export const pop = () => {
         state.queue.splice(0, 1)
     });
 }
+export const remove = (task: DownloadTask) => {
+    store.set(state => {
+        const i = state.queue.findIndex(it => it.url === task.url)
+        if (i >= 0)
+            state.queue.splice(i, 1)
+    });
+}
 
 export const downloadAll = (tasks: DownloadTask[]) => {
     store.set(state => {

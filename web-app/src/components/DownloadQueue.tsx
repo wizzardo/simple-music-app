@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {useStore} from "react-ui-basics/store/Store";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
@@ -39,24 +39,29 @@ const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album
     request.send();
 };
 
+const MAX_PARALLEL_DOWNLOADS = 4;
+
 const DownloadQueue = ({}) => {
     const localCache = useLocalCache();
     const {queue} = useStore(DownloadQueueStore.store)
-    const [downloading, setDownloading] = useState(false)
+    const [downloading, setDownloading] = useState(0)
+    const downloadingRef = useRef<number>()
+    downloadingRef.current = downloading
 
     useEffect(() => {
         if (!localCache)
             return
-        if (downloading)
+        if (downloading == MAX_PARALLEL_DOWNLOADS)
             return;
-        if (!queue.length)
+        if (queue.length <= downloading)
             return;
 
-        const task = queue[0];
-        setDownloading(true)
+        const task = queue[downloading];
+
+        setDownloading(downloading + 1)
         load(task.url, (song, data) => {
-            setDownloading(false)
-            DownloadQueueStore.pop()
+            setDownloading(downloadingRef.current - 1)
+            DownloadQueueStore.remove(task)
             task.onDownloaded?.(song, data)
         }, localCache, task.artist, task.album, task.song)
 

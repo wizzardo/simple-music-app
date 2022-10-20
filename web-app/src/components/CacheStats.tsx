@@ -1,6 +1,6 @@
 import {Song, useLocalCache} from "../services/LocalCacheService";
 import React, {useEffect, useState} from "react";
-import Table from "react-ui-basics/Table";
+import Table, {TableColumnTyped} from "react-ui-basics/Table";
 import Size from "react-ui-basics/Size";
 import Button from "react-ui-basics/Button";
 import {Comparators} from "react-ui-basics/Tools";
@@ -43,7 +43,7 @@ const CacheStats = ({}) => {
     return <div className={css`
       padding: 60px 20px 20px;
     `}>
-        <Table
+        <Table<CachedAlbum>
             sortBy={'name'}
             data={albums}
             columns={[
@@ -53,10 +53,10 @@ const CacheStats = ({}) => {
                     sortable: true,
                 },
                 {
-                    field: '',
+                    field: 'songs',
                     header: 'Tracks',
                     sortable: false,
-                    formatter: ((_, it) => it.songs.length)
+                    formatter: ((it) => String(it.length))
                 },
                 {
                     field: 'songs',
@@ -69,8 +69,8 @@ const CacheStats = ({}) => {
                     comparator: Comparators.of(it => it.songs.reduce((total, it) => {
                         total += it.size;
                         return total
-                    }, 0), Comparators.SORT_ASC, null)
-                },
+                    }, 0), Comparators.SORT_ASC, albums)
+                } as TableColumnTyped<CachedAlbum, 'songs'>,
                 {
                     field: 'name',
                     header: '',

@@ -5,8 +5,10 @@ import App from './components/App';
 import {setup} from "goober";
 // @ts-ignore
 import {jsx} from 'react/jsx-runtime';
+import BuildInfo from "./BuildInfo";
 
 setup(jsx);
+window['buildInfo'] = BuildInfo;
 
 ReactDOM.render(<App/>, document.getElementById('root'));
 

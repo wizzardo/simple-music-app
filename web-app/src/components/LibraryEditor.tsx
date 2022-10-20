@@ -11,7 +11,7 @@ import NavLink from "react-ui-basics/router/NavLink";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
 import NetworkService, {AlbumDto, AlbumDtoSong, ArtistDto} from "../services/NetworkService";
 import React, {useEffect, useState} from "react";
-import Table from "react-ui-basics/Table";
+import Table, {TableColumnTyped} from "react-ui-basics/Table";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import dayjs from "dayjs";
 import {useStore} from "react-ui-basics/store/Store";
@@ -198,7 +198,7 @@ interface Album extends AlbumDto {
 }
 
 
-const ListAlbumsArtists = ({artists}) => {
+const ListAlbumsArtists = ({artists}: { artists: ArtistDto[] }) => {
     const artistsStore = useStore(ArtistsStore.store)
     const albums = artists.map(artist => artist.albums.map(it => ({...it, artistId: artist.id}))).flat()
 
@@ -271,7 +271,7 @@ const ListAlbumsArtists = ({artists}) => {
                     sortable: true,
                     formatter: (id) => artistsStore.map[id]?.name,
                     comparator: Comparators.of((it) => artistsStore.map[it.artistId]?.name, Comparators.SORT_ASC, albums)
-                },
+                } as TableColumnTyped<Album, 'artistId'>,
                 {
                     field: 'date',
                     header: 'Date',
@@ -281,8 +281,8 @@ const ListAlbumsArtists = ({artists}) => {
                     field: 'songs',
                     header: 'Tracks',
                     sortable: false,
-                    formatter: ((it) => it.length)
-                },
+                    formatter: ((it) => String(it.length))
+                } as TableColumnTyped<Album, 'songs'>,
                 {
                     field: 'songs',
                     header: 'Duration',
@@ -291,7 +291,7 @@ const ListAlbumsArtists = ({artists}) => {
                         total += it.duration;
                         return total
                     }, 0) || 0))
-                },
+                } as TableColumnTyped<Album, 'songs'>,
                 {
                     field: 'id',
                     header: '',
@@ -303,7 +303,7 @@ const ListAlbumsArtists = ({artists}) => {
                             setSelected(selected.filter(it => it !== id))
                         }
                     }}/>)
-                },
+                } as TableColumnTyped<Album, 'id'>,
                 {
                     field: 'id',
                     sortable: false,
@@ -565,8 +565,8 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                     field: 'songs',
                     header: 'Tracks',
                     sortable: false,
-                    formatter: ((it) => it.length)
-                },
+                    formatter: ((it) => String(it.length))
+                } as TableColumnTyped<Album, 'songs'>,
                 {
                     field: 'songs',
                     header: 'Duration',
@@ -575,7 +575,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                         total += it.duration;
                         return total
                     }, 0) || 0))
-                },
+                } as TableColumnTyped<Album, 'songs'>,
                 {
                     field: 'id',
                     header: '',
