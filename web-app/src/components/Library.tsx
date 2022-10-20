@@ -50,13 +50,15 @@ const AlbumTitle = styled("span")`
   text-align: center;
 `;
 const AlbumDuration = styled("span")`
-  color: gray;
   font-size: 12px;
 `;
 const AlbumArtist = styled("span")`
-  color: gray;
   font-size: 12px;
   text-align: center;
+
+  &:nth-child(2) {
+    margin-top: 5px;
+  }
 `;
 
 const LinkStyles = css`
@@ -255,6 +257,8 @@ const ListArtistAlbums = ({artistId, cardWidth}) => {
     }, [artistId])
 
     albums.sort(Comparators.of(it => it.name, Comparators.SORT_ASC, albums))
+    if (!artistId)
+        return null
 
     return <>
         <FlexRow className={css`

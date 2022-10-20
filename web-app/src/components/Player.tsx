@@ -484,7 +484,7 @@ const Player = ({}) => {
 export default Player;
 
 const VolumeControl = ({className}: { className?: any }) => {
-    const {volume} = useStore(PlayerStore.store)
+    const {volume, playing} = useStore(PlayerStore.store)
     const [isDragging, setIsDragging] = useState(false)
 
     useEffect(() => {
@@ -506,7 +506,7 @@ const VolumeControl = ({className}: { className?: any }) => {
           position: absolute;
 
           .MaterialIcon {
-            color: grey;
+            color: ${playing ? 'black' : 'grey'};
             margin-right: 10px;
           }
 
