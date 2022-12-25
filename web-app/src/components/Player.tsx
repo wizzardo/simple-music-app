@@ -335,7 +335,7 @@ const Player = ({}) => {
         if (!Number.isFinite(volume))
             return
 
-        audio.volume = volume
+        audio.volume = Math.max(0, Math.min(volume, 1))
 
     }, [audio, volume])
 
