@@ -315,7 +315,7 @@ const Player = ({}) => {
                     loadAudio(cachedSong, sd.data)
             }
         })().catch(console.error)
-    }, [localCache, playing, song?.track, audio])
+    }, [localCache, playing, song, audio])
 
     useEffect(() => {
         if (!playing)
