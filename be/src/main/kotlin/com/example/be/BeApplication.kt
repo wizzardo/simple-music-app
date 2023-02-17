@@ -9,16 +9,17 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import org.springframework.web.servlet.resource.EncodedResourceResolver
 import org.springframework.web.servlet.resource.PathResourceResolver
+import java.lang.IllegalStateException
 import javax.sql.ConnectionPoolDataSource
 
 @SpringBootApplication
 class BeApplication {
 
     @Bean
-    fun corsConfigurer(): WebMvcConfigurer {
+    fun corsConfigurer(env: Environment): WebMvcConfigurer {
         return object : WebMvcConfigurer {
-            override fun addCorsMappings(registry: CorsRegistry?) {
-                registry!!
+            override fun addCorsMappings(registry: CorsRegistry) {
+                registry
                     .addMapping("/**")
                     .allowCredentials(true)
                     .allowedMethods("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS")
@@ -26,6 +27,7 @@ class BeApplication {
                         "http://localhost:3000",
                         "http://localhost:8080",
                         "http://192.168.0.147:3000",
+                        env.getProperty("origin")
                     )
             }
         }
@@ -49,8 +51,6 @@ class BeApplication {
 
     @Bean
     fun createDatasource(env: Environment): ConnectionPoolDataSource {
-        val poolDataSource = org.postgresql.ds.PGConnectionPoolDataSource()
-
         var username = env.getProperty("spring.datasource.username")
         var password = env.getProperty("spring.datasource.password")
         var url = env.getProperty("spring.datasource.url")
@@ -63,22 +63,29 @@ class BeApplication {
             password = credentials.substringAfter(":")
         }
 
-        val dbName = url.substringAfterLast("/")
-        val host = url.substringAfter("://").substringBefore("/")
+        println("createDatasource: ${url}")
 
-        poolDataSource.databaseName = dbName
-        poolDataSource.serverNames = arrayOf(host.substringBefore(":"))
-        poolDataSource.portNumbers = intArrayOf(host.substringAfter(":").toIntOrNull() ?: 5432)
-        poolDataSource.user = username
-        poolDataSource.password = password
-        poolDataSource.binaryTransfer = true
+        if (url!!.contains("postgres")) {
+            val dbName = url.substringAfterLast("/")
+            val host = url.substringAfter("://").substringBefore("/")
+
+            val poolDataSource = org.postgresql.ds.PGConnectionPoolDataSource()
+            poolDataSource.databaseName = dbName
+            poolDataSource.serverNames = arrayOf(host.substringBefore(":"))
+            poolDataSource.portNumbers = intArrayOf(host.substringAfter(":").toIntOrNull() ?: 5432)
+            poolDataSource.user = username
+            poolDataSource.password = password
+            poolDataSource.binaryTransfer = true
 //        poolDataSource.ssl = true
 //        poolDataSource.sslMode = "require"
-        poolDataSource.tcpKeepAlive = true
-        poolDataSource.preparedStatementCacheSizeMiB = 1
-        poolDataSource.preparedStatementCacheQueries = 32
+            poolDataSource.tcpKeepAlive = true
+            poolDataSource.preparedStatementCacheSizeMiB = 1
+            poolDataSource.preparedStatementCacheQueries = 32
 
-        return poolDataSource
+            return poolDataSource
+        }
+
+        throw IllegalStateException("No datasource!")
     }
 
     companion object {

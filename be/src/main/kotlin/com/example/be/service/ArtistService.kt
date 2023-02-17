@@ -217,7 +217,7 @@ class ArtistService(
         var artist: Artist? = findByName(db, name)
         if (artist == null) {
             artist = createArtist(name, path)
-            dbService.insertInto(db, artist, Tables.ARTIST)
+            artist.id = dbService.insertInto(db, artist, Tables.ARTIST)
         }
         return artist
     }
@@ -227,14 +227,14 @@ class ArtistService(
         updated = Date()
         this.name = name
         this.path = path
-        albums = emptyList()
+        albums = ArrayList()
     }
 
     fun createAlbum(name: String, path: String): Album = Album().apply {
         id = randomIdService.generateId()
         this.path = path
         this.name = name
-        this.songs = emptyList()
+        this.songs = ArrayList()
         if (songsStorageService.encryption) {
             coverEncryptionKey = songsStorageService.createEncryptionKey()
         }

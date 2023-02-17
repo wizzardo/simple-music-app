@@ -93,6 +93,12 @@ class SongService(
                 println("error:")
                 println(error)
             }
+
+            var image = ImageTools.read(tempFile)
+//            var image = StbImageLoader.load(tempFile)
+//            image = ImageTools.resizeToFit(image, 512, 512)
+            ImageTools.saveJPG(image, tempFile, 90)
+
             delete = false
             return TempFileInputStream(tempFile)
 //            return FileTools.bytes(tempFile)

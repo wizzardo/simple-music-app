@@ -16,9 +16,9 @@ class UploadController(
         @RequestParam("file") file: MultipartFile,
         @RequestParam("artistId", required = false) artistId: Long?,
         @RequestParam("albumId", required = false) albumId: String?,
-        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>,
     ): ResponseEntity<Artist> {
-        return uploadService.upload(file, artistId, albumId)
+        return uploadService.upload({ file.transferTo(it) }, file.originalFilename, artistId, albumId)
     }
 
 }

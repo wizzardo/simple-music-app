@@ -27,15 +27,21 @@ class UploadService(
         private const val UNKNOWN_ARTIST = "unknownArtist"
     }
 
+    fun interface TempFileLoader {
+        fun transferTo(dest: File)
+    }
+
     fun upload(
-        file: MultipartFile,
+        loader: TempFileLoader,
+        fileName: String?,
         artistId: Long?,
         albumId: String?
     ): ResponseEntity<Artist> {
-        val ext = file.originalFilename?.substringAfterLast('.') ?: "bin"
+        val ext = fileName?.substringAfterLast('.') ?: "bin"
         val tempFile = File.createTempFile("upload", ".$ext")
+//        val tempFile = File("upload.$ext")
         try {
-            file.transferTo(tempFile)
+            loader.transferTo(tempFile)
             val metaData: MetaData = ffmpegService.getMetaData(tempFile)
             var artist: Artist? = artistId?.let { artistService.getArtist(it) }
 
@@ -48,7 +54,7 @@ class UploadService(
                 ?: throw IllegalArgumentException("album tag is empty!")
 
             var title = metaData.title?.replace("/", " - ")
-                ?: file.originalFilename?.substringBeforeLast('.')
+                ?: fileName?.substringBeforeLast('.')
                 ?: throw IllegalArgumentException("title tag is empty!")
             var track = metaData.track
             if (track == null) {
@@ -153,7 +159,7 @@ class UploadService(
         path = relativePath
         metaData.date?.let { this.date = it }
         metaData.album?.let { this.name = it }
-        this.songs = emptyList()
+        this.songs = ArrayList()
         if (songsStorageService.encryption) {
             coverEncryptionKey = songsStorageService.createEncryptionKey()
         }
