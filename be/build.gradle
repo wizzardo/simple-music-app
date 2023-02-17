@@ -1,29 +1,44 @@
-import org.jooq.codegen.GenerationTool
-import org.jooq.meta.jaxb.*
+import java.nio.file.Files
+import java.text.SimpleDateFormat
+import org.gradle.internal.os.OperatingSystem;
 
 buildscript {
-    ext.jooqVersion = "3.16.5"
-    ext.postgresqlVersion = "42.3.3"
+    ext.postgresqlVersion = "42.4.2"
+    def arch = ""
+    if (System.getProperty("os.arch") == "aarch64") {
+        arch = "-arm64"
+    }
+
+    def os = ""
+    if (OperatingSystem.current().isLinux()) {
+        os = "linux"
+    } else if (OperatingSystem.current().isMacOsX()) {
+        os = "macos"
+    } else if (OperatingSystem.current().isWindows()) {
+        os = "windows"
+    }
+//    println "System.getProperty(\"os.arch\"): ${System.getProperty("os.arch")}"
+//    project.ext.lwjgl = "3.3.1"
+    project.ext.lwjgl = "3.3.2-SNAPSHOT"
+    project.ext.lwjglNative = "natives-${os}${arch}"
 
     repositories {
         mavenCentral()
     }
 
     dependencies {
-        classpath "org.jooq:jooq-meta:$jooqVersion"
-        classpath "org.jooq:jooq-codegen:$jooqVersion"
-        classpath "org.postgresql:postgresql:$postgresqlVersion"
     }
 }
 
 plugins {
     id "org.springframework.boot" version "2.6.6"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "org.jetbrains.kotlin.jvm" version "1.6.10"
-    id "org.jetbrains.kotlin.plugin.spring" version "1.6.10"
+    id "org.jetbrains.kotlin.jvm" version "1.7.10"
+    id "org.jetbrains.kotlin.plugin.spring" version "1.7.10"
 }
 
 apply plugin: 'application'
+apply plugin: 'tools-gradle-build'
 
 group = "com.example"
 version = "0.0.1-SNAPSHOT"
@@ -39,79 +54,89 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-jooq'
     implementation('org.springframework.boot:spring-boot-starter-web') { exclude module: "spring-boot-starter-tomcat" }
     implementation 'org.springframework.boot:spring-boot-starter-undertow'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation "org.flywaydb:flyway-core:8.5.6"
-    implementation 'com.zaxxer:HikariCP:5.0.1'
-//    implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
-    implementation files('../../tools/build/libs/tools-all-0.24-SNAPSHOT.jar')
-    implementation "org.postgresql:postgresql:$postgresqlVersion"
-//    implementation 'com.wizzardo.cloud-storage-webdav:base:1.0-SNAPSHOT'
-//    implementation 'com.wizzardo.cloud-storage-webdav:local:1.0-SNAPSHOT'
-//    implementation 'com.wizzardo.cloud-storage-webdav:degoo:1.0-SNAPSHOT'
-//    implementation 'com.wizzardo.cloud-storage-webdav:terabox:1.0-SNAPSHOT'
-//    implementation 'com.wizzardo.cloud-storage-webdav:s3:1.0-SNAPSHOT'
-//    implementation 'com.wizzardo.cloud-storage-webdav:webdav:1.0-SNAPSHOT'
-    implementation files('../../cloud-storage-webdav/storages/base/build/libs/base-1.0-SNAPSHOT.jar')
-    implementation files('../../cloud-storage-webdav/storages/local/build/libs/local-1.0-SNAPSHOT.jar')
-    implementation files('../../cloud-storage-webdav/storages/degoo/build/libs/degoo-1.0-SNAPSHOT.jar')
-    implementation files('../../cloud-storage-webdav/storages/terabox/build/libs/terabox-1.0-SNAPSHOT.jar')
-    implementation files('../../cloud-storage-webdav/storages/s3/build/libs/s3-1.0-SNAPSHOT.jar')
-    implementation files('../../cloud-storage-webdav/storages/webdav/build/libs/webdav-1.0-SNAPSHOT.jar')
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
 
-    implementation "org.jooq:jooq:$jooqVersion"
-    implementation "org.jooq:jooq-meta:$jooqVersion"
-    implementation "org.jooq:jooq-codegen:$jooqVersion"
+//    implementation "org.flywaydb:flyway-core:8.5.6"
+//    implementation 'com.zaxxer:HikariCP:5.0.1'
+    implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
+//    implementation files('../../tools/build/libs/tools-all-0.24-SNAPSHOT.jar')
+    implementation('com.wizzardo:http:0.5-SNAPSHOT') {
+        exclude group: 'com.wizzardo.tools'
+    }
+
+    implementation "org.postgresql:postgresql:$postgresqlVersion"
+    implementation 'com.wizzardo.cloud-storage-webdav:base:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:local:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:degoo:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:terabox:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:s3:1.0-SNAPSHOT'
+    implementation 'com.wizzardo.cloud-storage-webdav:webdav:1.0-SNAPSHOT'
+//    implementation files('../../cloud-storage-webdav/storages/base/build/libs/base-1.0-SNAPSHOT.jar')
+//    implementation files('../../cloud-storage-webdav/storages/local/build/libs/local-1.0-SNAPSHOT.jar')
+//    implementation files('../../cloud-storage-webdav/storages/degoo/build/libs/degoo-1.0-SNAPSHOT.jar')
+//    implementation files('../../cloud-storage-webdav/storages/terabox/build/libs/terabox-1.0-SNAPSHOT.jar')
+//    implementation files('../../cloud-storage-webdav/storages/s3/build/libs/s3-1.0-SNAPSHOT.jar')
+//    implementation files('../../cloud-storage-webdav/storages/webdav/build/libs/webdav-1.0-SNAPSHOT.jar')
+
+    implementation "org.lwjgl:lwjgl:${lwjgl}"
+    implementation "org.lwjgl:lwjgl:${lwjgl}:${lwjglNative}"
+    implementation "org.lwjgl:lwjgl-stb:${lwjgl}"
+    implementation "org.lwjgl:lwjgl-stb:${lwjgl}:${lwjglNative}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
-task jooqGenerate() {
-    doLast {
-        def configuration = new org.jooq.meta.jaxb.Configuration()
-        configuration.with {
-            jdbc = new Jdbc().with {
-                driver = 'org.postgresql.Driver'
-                url = 'jdbc:postgresql://localhost:5435/postgres'
-                user = 'postgres'
-                password = 'Pass2020!'
-                it
-            }
 
-            generator = new Generator().with {
-                name = 'org.jooq.codegen.KotlinGenerator'
-
-                database = new Database().with {
-                    name = 'org.jooq.meta.postgres.PostgresDatabase'
-                    inputSchema = 'public'
-                    syntheticIdentities = 'id'
-                    includes = '.*'
-                    excludes = ''
-                    it
-                }
-
-                generate = new Generate().with {
-                    javaTimeTypes = true
-                    pojos = true
-                    daos = true
-                    generatedAnnotation = true
-                    serializablePojos = false
-                    it
-                }
-
-                target = new Target().with {
-                    packageName = 'com.example.be.db.generated'
-                    directory = projectDir.absolutePath + '/src/main/kotlin'
-                    it
-                }
-                it
-            }
-        }
-
-        GenerationTool.generate(configuration)
+sqlTools {
+    migrations {
+        enabled = true
+        src = 'db/migration'
+//        src = 'db/migrations_oracle'
+        out = 'migrations.txt'
+    }
+    tablesGenerator {
+        enabled = true
+        src = 'src/main/java/com/example/be/db/model'
+        out = 'src/main/java/com/example/be/db/generated'
+        packageName = 'com.example.be.db.generated'
     }
 }
+
+task([type: Jar, description: 'Generates lambda jar with all dependencies'], 'lambdaJar', {
+    baseName = project.name + '-all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { sourceSets.main.runtimeClasspath.collect { !it.isFile() ? it : zipTree(it) } }
+    exclude 'META-INF/*'
+    with jar
+
+    manifest {
+        attributes(
+                "Main-Class": 'com.example.be.LambdaApp',
+//                "Main-Class": 'com.example.be.TestLambda',
+                "buildTime": new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+                "version": "${{ -> version }}"
+        )
+    }
+})
+
+task([description: 'listing all public files'], 'listPublicFiles', {
+    doLast {
+        def file = new File(projectDir.absolutePath, "src/main/resources/public-list.txt")
+        file.parentFile.mkdirs()
+
+        def sout = new StringBuilder(), serr = new StringBuilder()
+        def root = new File(projectDir.absolutePath, "src/main/resources/public").toPath()
+        Files.walk(root).forEach({
+            if (it.toFile().isFile())
+                sout.append('/').append(it.subpath(root.getNameCount() - 1, it.getNameCount())).append('\n')
+        })
+
+        file.setText(sout.toString())
+    }
+})
+tasks.processResources.dependsOn listPublicFiles
