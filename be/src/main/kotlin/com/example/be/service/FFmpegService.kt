@@ -7,18 +7,26 @@ import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.misc.Stopwatch
 import org.springframework.stereotype.Service
+import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.lang.IllegalStateException
+import java.lang.StringBuilder
 import java.util.*
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import kotlin.collections.HashMap
 
 @Service
 class FFmpegService(
-    private val songService: SongService
+    private val songService: SongService,
 ) {
+    val threadPool = Executors.newFixedThreadPool(8)
     val bitratePattern = Pattern.compile("([0-9]+) *kb/s")
 
     fun getMetaData(f: File): MetaData {
@@ -53,7 +61,7 @@ class FFmpegService(
             }
         }
 
-//        println(metadata)
+        println(metadata)
         val track = metadata["track"]?.let {
             it.substringBefore("/").toInt()
         }
@@ -92,41 +100,98 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    protected fun doConvert(artist: ArtistDto, album: AlbumDto, song: AlbumDto.Song, format: AudioFormat, bitrate: Int): File {
-        val tempFile = File.createTempFile("from_", "." + song.path.substringAfterLast('.'))
-        val tempOutFile = File.createTempFile("to_", "." + format.extension)
-        songService.copySongData(artist, album, song, tempFile)
+    fun doConvert(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): File {
+        val songStream = songService.copySongStream(artist, album, song)
+        return doConvert(songStream, song.format, format, bitrate)
+    }
 
-        val stopwatch = Stopwatch("converting to " + format)
+    fun doConvert(songStream: InputStream, fromFormat: AudioFormat, toFormat: AudioFormat, bitrate: Int): File {
+        val tempOutFile = File.createTempFile("to_", "." + toFormat.extension)
+        val stopwatch = Stopwatch("converting to " + toFormat)
         val command =
             arrayOf(
                 "./ffmpeg",
                 "-nostdin",
                 "-y",
                 "-hide_banner",
+                "-f",
+                fromFormat.extension,
                 "-i",
-                tempFile.canonicalPath,
+                "pipe:0",
                 "-map",
                 "a",
                 "-c:a",
-                format.codec,
+                toFormat.codec,
+                "-f",
+                toFormat.extension,
                 "-ab",
                 bitrate.toString() + "k",
-                tempOutFile.canonicalPath
+                "pipe:1"
             )
-            println("executing command: ${Arrays.toString(command)}")
+        println("executing command: ${Arrays.toString(command)}")
         val process = Runtime.getRuntime().exec(command)
-        val exited = process.waitFor(120, TimeUnit.SECONDS)
+
+        val latch = CountDownLatch(2)
+        threadPool.execute({
+            try {
+                FileOutputStream(tempOutFile).use { outputStream ->
+                    IOTools.copy(process.inputStream, outputStream)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                latch.countDown()
+            }
+        })
+
+
+        val messageFuture = threadPool.submit(Callable {
+            val sb = StringBuilder()
+            try {
+                BufferedReader(InputStreamReader(process.errorStream)).use {
+                    var line: String?
+                    while (true) {
+                        line = it.readLine()
+                        if (line != null) {
+//                            println(line)
+                            sb.appendLine(line)
+                        } else
+                            break
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                latch.countDown()
+            }
+            sb.toString()
+        })
+
+        try {
+            IOTools.copy(songStream, process.outputStream)
+            process.outputStream.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+
+        val exited = process.waitFor(1, TimeUnit.SECONDS)
+        println(stopwatch)
         if (!exited) {
             process.destroy()
         }
 
-            println(stopwatch)
-            println("output:")
-            println(String(process.inputStream.readAllBytes()))
-            println("error:")
-            val message = String(process.errorStream.readAllBytes())
-            println(message)
+        val message = messageFuture.get()
+        println("error output: ")
+        println(message)
+        if (message.contains("Error while decoding") || message.contains("corrupt input")) {
+            throw IllegalStateException("Error while decoding")
+        }
+
+
+        if (!latch.await(4, TimeUnit.SECONDS)) {
+            throw IllegalStateException("latch wasn't released")
+        }
         return tempOutFile
     }
 
