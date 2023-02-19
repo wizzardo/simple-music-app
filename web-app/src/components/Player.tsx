@@ -259,7 +259,7 @@ const Player = ({}) => {
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log(new Date().toISOString(), 'songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = async (song: Song, data?: ArrayBuffer, source?: MediaSource) => {
+            const loadAudio = async (song?: Song, data?: ArrayBuffer, source?: MediaSource) => {
                 console.log(new Date().toISOString(), 'decoding', song)
                 if (!audio.paused) {
                     audio.pause()
@@ -267,9 +267,9 @@ const Player = ({}) => {
                 }
 
                 if (source) {
-                    audio.src = audio.dataset.objectUrl = URL.createObjectURL(source);
-                } else {
-                    if (!data || data.byteLength === 0) {
+                    // audio.src = audio.dataset.objectUrl = URL.createObjectURL(source);
+                } else if (data) {
+                    if (data.byteLength === 0) {
                         PlayerStore.next()
                         return
                     }
@@ -284,6 +284,8 @@ const Player = ({}) => {
                     } else {
                         audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
                     }
+                } else {
+                    audio.src = audioUrl + '/stream'
                 }
 
                 // audio.srcObject = blob
@@ -293,27 +295,29 @@ const Player = ({}) => {
             };
 
             if (!cachedSong) {
+                loadAudio()
                 console.log(new Date().toISOString(), 'downloading', audioUrl)
                 DownloadQueueStore.download(
-                    audioUrl + '/stream',
+                    audioUrl,
                     artist.name,
                     album.name,
                     song.title,
                     format,
                     bitrate,
-                    loadAudio
+                    null
                 )
             } else {
                 const sd = await localCache.songData(cachedSong.dataId)
                 if (!sd) {
+                    loadAudio()
                     DownloadQueueStore.download(
-                        audioUrl + '/stream',
+                        audioUrl,
                         artist.name,
                         album.name,
                         song.title,
                         format,
                         bitrate,
-                        loadAudio
+                        null
                     )
                 } else
                     loadAudio(cachedSong, sd.data)

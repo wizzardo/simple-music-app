@@ -28,14 +28,14 @@ const load = (url,
         return result;
     }
 
-    fetch(url)
+    fetch(url + '/stream')
         .then((response) => {
             const reader = response.body.getReader();
             const contentType = response.headers.get('Content-Type');
             const arrays: Uint8Array[] = []
 
             let song: Song = {
-                url: url.replace('/stream', ''),
+                url,
                 name,
                 album,
                 artist,
@@ -46,23 +46,26 @@ const load = (url,
                 dateAdded: new Date().getTime(),
             };
 
-            const mediaSource = new MediaSource();
 
             let sourceBuffer: SourceBuffer;
             let bufferPosition = 0;
             let isWaiting = false
 
-            addEventListener(mediaSource, 'sourceopen', () => {
-                sourceBuffer = mediaSource.addSourceBuffer(contentType);
-                isWaiting = true
-                addEventListener(sourceBuffer, 'updateend', () => {
-                    if (bufferPosition < arrays.length) {
-                        sourceBuffer.appendBuffer(arrays[bufferPosition++]);
-                    } else {
-                        isWaiting = true;
-                    }
+            if (setAudio) {
+                const mediaSource = new MediaSource();
+                addEventListener(mediaSource, 'sourceopen', () => {
+                    sourceBuffer = mediaSource.addSourceBuffer(contentType);
+                    isWaiting = true
+                    addEventListener(sourceBuffer, 'updateend', () => {
+                        if (bufferPosition < arrays.length) {
+                            sourceBuffer.appendBuffer(arrays[bufferPosition++]);
+                        } else {
+                            isWaiting = true;
+                        }
+                    })
                 })
-            })
+                setAudio(song, null, mediaSource)
+            }
 
             function pump() {
                 reader.read().then(({done, value}) => {
@@ -90,8 +93,6 @@ const load = (url,
             }
 
             pump()
-
-            setAudio && setAudio(song, null, mediaSource)
         })
     ;
 
