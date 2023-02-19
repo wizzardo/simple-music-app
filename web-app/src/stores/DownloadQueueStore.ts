@@ -13,7 +13,7 @@ export type DownloadTask = {
     song: string,
     format: string,
     bitrate: number,
-    onDownloaded?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void,
+    onData?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void,
 }
 
 export const store = new Store({
@@ -53,10 +53,10 @@ export const download = (
     song: string,
     format: string,
     bitrate: number,
-    onDownloaded?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void
+    onData?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void
 ) => {
     store.set(state => {
         if (!state.queue.some(it => it.url === url))
-            state.queue.push({url, song, artist, album, format, bitrate, onDownloaded})
+            state.queue.push({url, song, artist, album, format, bitrate, onData})
     });
 }

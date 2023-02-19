@@ -315,6 +315,7 @@ const ListSongs = ({artistId, albumName}) => {
     const [notReadySongs, setNotReadySongs] = useState([])
     const {format, bitrate} = useStore(SettingsStore.store)
     const cache = useLocalCache()
+    const downloadQueueState = useStore(DownloadQueueStore.store)
 
     const artistsStore = useStore(ArtistsStore.store)
     const artist = artistsStore.map[artistId];
@@ -357,7 +358,7 @@ const ListSongs = ({artistId, albumName}) => {
             setNotReadySongs(notReady)
         })()
 
-    }, [cache, album?.songs])
+    }, [cache, album?.songs, downloadQueueState.queue])
 
     if (!album)
         return <></>
