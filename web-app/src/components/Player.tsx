@@ -259,27 +259,31 @@ const Player = ({}) => {
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log(new Date().toISOString(), 'songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = async (song: Song, data) => {
+            const loadAudio = async (song: Song, data?: ArrayBuffer, source?: MediaSource) => {
                 console.log(new Date().toISOString(), 'decoding', song)
                 if (!audio.paused) {
                     audio.pause()
                     console.log(new Date().toISOString(), 'paused')
                 }
 
-                if (data.byteLength === 0) {
-                    PlayerStore.next()
-                    return
-                }
-
-                const blob = new Blob([new Uint8Array(data, 0, data.byteLength)])
-                if (isSafari) {
-                    let sourceElement = document.createElement('source')
-                    audio.childNodes[0] && audio.removeChild(audio.childNodes[0])
-                    audio.appendChild(sourceElement)
-                    sourceElement.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
-                    sourceElement.type = song.type
+                if (source) {
+                    audio.src = audio.dataset.objectUrl = URL.createObjectURL(source);
                 } else {
-                    audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                    if (!data || data.byteLength === 0) {
+                        PlayerStore.next()
+                        return
+                    }
+
+                    const blob = new Blob([new Uint8Array(data, 0, data.byteLength)])
+                    if (isSafari) {
+                        let sourceElement = document.createElement('source')
+                        audio.childNodes[0] && audio.removeChild(audio.childNodes[0])
+                        audio.appendChild(sourceElement)
+                        sourceElement.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                        sourceElement.type = song.type
+                    } else {
+                        audio.src = audio.dataset.objectUrl = URL.createObjectURL(blob)
+                    }
                 }
 
                 // audio.srcObject = blob
@@ -291,7 +295,7 @@ const Player = ({}) => {
             if (!cachedSong) {
                 console.log(new Date().toISOString(), 'downloading', audioUrl)
                 DownloadQueueStore.download(
-                    audioUrl,
+                    audioUrl + '/stream',
                     artist.name,
                     album.name,
                     song.title,
@@ -303,7 +307,7 @@ const Player = ({}) => {
                 const sd = await localCache.songData(cachedSong.dataId)
                 if (!sd) {
                     DownloadQueueStore.download(
-                        audioUrl,
+                        audioUrl + '/stream',
                         artist.name,
                         album.name,
                         song.title,

@@ -1,4 +1,4 @@
-import {fetch} from "./HttpClient";
+import {fetch, FetchOptions, toRequestParams} from "./HttpClient";
 
 const origin = window.location.origin;
 const baseurl = origin.indexOf('localhost') !== -1 ? 'http://192.168.0.147:8080' :
@@ -64,6 +64,17 @@ const createPOST = <R, P extends Params>(template: string) => {
     return async (params?: P,) => fetch<R>(`${baseurl}${urlMaker(params)}`, {params, method: "POST"});
 };
 
+const createBinaryPOST = <R>(template: string) => {
+    let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
+    return async (pathVariables: Params, options: FetchOptions) => {
+        let url = `${baseurl}${urlMaker(pathVariables)}`;
+        if (Object.keys(pathVariables).length > 0) {
+            url += '?' + toRequestParams(pathVariables)
+        }
+        return fetch<R>(url, options);
+    };
+};
+
 const createDELETE = <R>(template: string) => {
     let urlMaker: (UrlMaker) = lazy(createUrlMaker, template, true);
     return async (params?: Params,) => fetch<R>(`${baseurl}${urlMaker(params)}`, {params, method: "DELETE"});
@@ -90,6 +101,7 @@ export default {
     getArtists: createGET<Array<ArtistDto>>('/artists'),
     getSong: createGET('/artists/{artistId}/{albumName}/{trackNumber}'),
     getSongConverted: createGET('/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}'),
+    getSongConvertedStreamed: createGET('/artists/{artistId}/{albumIdOrName}/{songIdOrTrackNumber}/{format}/{bitrate}/stream'),
     createAlbum: createPOST<ArtistDto, CreateAlbumRequest>('/artists/{artistId}/album'),
     createArtist: createPOST<ArtistDto, CreateArtistRequest>('/artists/'),
     mergeAlbums: createPOST<ArtistDto, MergeAlbumsRequest>('/artists/{artistId}/{intoAlbumId}'),

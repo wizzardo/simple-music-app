@@ -100,6 +100,30 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
+    fun convertAsStream(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): InputStream {
+        val audio = song.streams.find { it.startsWith("Audio:") }!!
+        if (format == AudioFormat.FLAC)
+            if (audio.contains("flac"))
+                return songService.copySongStream(artist, album, song)
+            else
+                throw IllegalArgumentException("Upconvert is not preferred");
+
+        val matcher = bitratePattern.matcher(audio)
+
+        val b = if (matcher.find())
+            matcher.group(1).toInt()
+        else
+            320
+
+        if (audio.contains(format.name.lowercase())) {
+            if (b <= bitrate)
+                return songService.copySongStream(artist, album, song)
+        }
+
+        val songStream = songService.copySongStream(artist, album, song)
+        return doConvertAsStream(songStream, song.format, format, Math.min(bitrate, b))
+    }
+
     fun doConvert(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): File {
         val songStream = songService.copySongStream(artist, album, song)
         return doConvert(songStream, song.format, format, bitrate)
@@ -193,6 +217,74 @@ class FFmpegService(
             throw IllegalStateException("latch wasn't released")
         }
         return tempOutFile
+    }
+
+    fun doConvertAsStream(songStream: InputStream, fromFormat: AudioFormat, toFormat: AudioFormat, bitrate: Int): InputStream {
+        val stopwatch = Stopwatch("converting to " + toFormat)
+        val command =
+            arrayOf(
+                "./ffmpeg",
+                "-nostdin",
+                "-y",
+                "-hide_banner",
+                "-f",
+                fromFormat.extension,
+                "-i",
+                "pipe:0",
+                "-map",
+                "a",
+                "-c:a",
+                toFormat.codec,
+                "-f",
+                toFormat.extension,
+                "-ab",
+                bitrate.toString() + "k",
+                "pipe:1"
+            )
+        println("executing command: ${Arrays.toString(command)}")
+        val process = Runtime.getRuntime().exec(command)
+
+
+        val messageFuture = threadPool.submit(Callable {
+            val sb = StringBuilder()
+            try {
+                BufferedReader(InputStreamReader(process.errorStream)).use {
+                    var line: String?
+                    while (true) {
+                        line = it.readLine()
+                        if (line != null) {
+                            sb.appendLine(line)
+                        } else
+                            break
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            sb.toString()
+        })
+
+        threadPool.execute({
+            try {
+                IOTools.copy(songStream, process.outputStream)
+                process.outputStream.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            val exited = process.waitFor(1, TimeUnit.SECONDS)
+            println(stopwatch)
+            if (!exited) {
+                process.destroy()
+            }
+            val message = messageFuture.get()
+            println("error output: ")
+            println(message)
+            if (message.contains("Error while decoding") || message.contains("corrupt input")) {
+                throw IllegalStateException("Error while decoding")
+            }
+        })
+        return process.inputStream
     }
 
     fun extractCoverArt(audio: File, to: File) {

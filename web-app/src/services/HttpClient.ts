@@ -2,7 +2,7 @@ import {orNoop} from "react-ui-basics/Tools";
 
 const CONTENT_TYPE_APPLICATION_JSON = 'application/json';
 
-const toKeyValue = (key, value) => encodeURIComponent(key) + '=' + encodeURIComponent(value !== null && typeof value === 'object' ? JSON.stringify(value) : value);
+const toKeyValue = (key, value) => key && (encodeURIComponent(key) + '=' + encodeURIComponent(value !== null && typeof value === 'object' ? JSON.stringify(value) : value));
 
 export const toRequestParams = (params) => (params && Object.keys(params).map(key => {
     const value = params[key];
@@ -17,7 +17,7 @@ export type Method = 'GET' | 'DELETE' | 'POST' | 'PUT'
 export class FetchOptions {
     method?: Method = 'GET'
     headers?: ({ [name: string]: string })
-    params?: ({ [name: string]: any })
+    params?: ({ [name: string]: any }) | FormData | Blob
     multipart?: boolean = false
     async?: boolean = true
     withCredentials?: boolean = true
@@ -45,7 +45,7 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
         ...(options.headers || {})
     };
 
-    let body: FormData | string
+    let body: FormData | string | Blob
 
     if (method === 'POST' || method === 'PUT') {
         if (options.multipart) {
@@ -63,6 +63,8 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
                 });
             }
             body = formData;
+        } else if (params instanceof Blob || params instanceof FormData) {
+            body = params;
         } else {
             headers['Content-Type'] = CONTENT_TYPE_APPLICATION_JSON;
             body = JSON.stringify(params || {}, (key, value) => {
@@ -76,12 +78,6 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
         const request = new XMLHttpRequest();
 
         const data = body;
-        if (method === 'GET' && data) {
-            let params = toRequestParams(data);
-            if (params)
-                url += "?" + params;
-        }
-
 
         if (!!(options.withCredentials === void 0 ? true : options.withCredentials))
             request.withCredentials = true;
@@ -130,7 +126,7 @@ export const fetch = <T>(url, options: FetchOptions = DEFAULT_OPTIONS) => {
 
         try {
             if (method === 'POST') {
-                if (typeof data === 'string' || data instanceof FormData)
+                if (typeof data === 'string' || data instanceof Blob || data instanceof FormData)
                     request.send(data);
                 else
                     request.send(toRequestParams(data));

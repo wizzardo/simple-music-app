@@ -1,42 +1,129 @@
 import React, {useEffect, useRef, useState} from "react";
 import {useStore} from "react-ui-basics/store/Store";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
-import {SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
+import {Song, SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
+import {addEventListener} from "react-ui-basics/Tools";
 
-const load = (url, setAudio, localCache: SongLocalCacheDB, artist: string, album: string, name: string, isRetrying?: boolean) => {
-    var request = new XMLHttpRequest();
-    request.open('GET', url, true);
-    request.responseType = 'arraybuffer';
+const load = (url,
+              setAudio: (song: Song, data?: ArrayBuffer, source?: MediaSource) => void,
+              localCache: SongLocalCacheDB,
+              artist: string,
+              album: string,
+              name: string,
+              isRetrying?: boolean
+) => {
+    function concat(arrays: Uint8Array[]) {
+        let totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
 
-    request.onload = () => {
-        let audioData = request.response;
-        const responsetext = (!request.responseType || request.responseType ==='text') && request.responseText;
-        if (request.status != 200 || Number(request.getResponseHeader('Content-Length')) === 0) {
-            console.error(url, request.status, responsetext)
-            if (!isRetrying || request.status === 503) {
-                load(url, setAudio, localCache, artist, album, name, true)
-            }
-            return
+        if (!arrays.length) return null;
+
+        let result = new Uint8Array(totalLength);
+
+        let length = 0;
+        for (let array of arrays) {
+            result.set(array, length);
+            length += array.length;
         }
 
-        const contentType = request.getResponseHeader('Content-Type');
-        const data = audioData.slice();
-
-        let song = {
-            url,
-            name,
-            album,
-            artist,
-            type: contentType,
-            size: data.byteLength,
-            dataId: 0,
-            timesPlayed: 0,
-            dateAdded: new Date().getTime(),
-        };
-        localCache.add(song, data)
-        setAudio(song, data)
+        return result;
     }
-    request.send();
+
+    fetch(url)
+        .then((response) => {
+            const reader = response.body.getReader();
+            const contentType = response.headers.get('Content-Type');
+            const arrays: Uint8Array[] = []
+
+            let song: Song = {
+                url: url.replace('/stream', ''),
+                name,
+                album,
+                artist,
+                type: contentType,
+                size: 0,
+                dataId: 0,
+                timesPlayed: 0,
+                dateAdded: new Date().getTime(),
+            };
+
+            const mediaSource = new MediaSource();
+
+            addEventListener(mediaSource, 'sourceopen', () => {
+                const sourceBuffer = mediaSource.addSourceBuffer(contentType);
+                let bufferPosition = 0;
+                let isWaiting = true
+                addEventListener(sourceBuffer, 'updateend', () => {
+                    if (bufferPosition < arrays.length) {
+                        sourceBuffer.appendBuffer(arrays[bufferPosition++]);
+                    } else {
+                        isWaiting = true;
+                    }
+                })
+
+                function pump() {
+                    reader.read().then(({done, value}) => {
+                        // console.log('on chunk', value?.length, 'is last:', done, bufferPosition, arrays.length)
+                        if (value) {
+                            arrays.push(value)
+                            if (isWaiting) {
+                                bufferPosition++
+                                isWaiting = false;
+                                sourceBuffer.appendBuffer(value)
+                            }
+                        }
+
+                        if (done) {
+                            const data = concat(arrays);
+                            // console.log('done', data)
+                            song.size = data.byteLength
+                            localCache.add(song, data)
+                            return;
+                        }
+
+                        pump();
+                    });
+                }
+
+                pump()
+            })
+
+            setAudio(song, null, mediaSource)
+        })
+    ;
+
+    // var request = new XMLHttpRequest();
+    // request.open('GET', url, true);
+    // request.responseType = 'arraybuffer';
+    //
+    // request.onload = () => {
+    //     let audioData = request.response;
+    //     const responsetext = (!request.responseType || request.responseType ==='text') && request.responseText;
+    //     if (request.status != 200 || Number(request.getResponseHeader('Content-Length')) === 0) {
+    //         console.error(url, request.status, responsetext)
+    //         if (!isRetrying || request.status === 503) {
+    //             load(url, setAudio, localCache, artist, album, name, true)
+    //         }
+    //         return
+    //     }
+    //
+    //     const contentType = request.getResponseHeader('Content-Type');
+    //     const data: ArrayBuffer = audioData.slice();
+    //
+    //     let song: Song = {
+    //         url,
+    //         name,
+    //         album,
+    //         artist,
+    //         type: contentType,
+    //         size: data.byteLength,
+    //         dataId: 0,
+    //         timesPlayed: 0,
+    //         dateAdded: new Date().getTime(),
+    //     };
+    //     localCache.add(song, data)
+    //     setAudio(song, data)
+    // }
+    // request.send();
 };
 
 const MAX_PARALLEL_DOWNLOADS = 4;
@@ -59,10 +146,10 @@ const DownloadQueue = ({}) => {
         const task = queue[downloading];
 
         setDownloading(downloading + 1)
-        load(task.url, (song, data) => {
+        load(task.url, (song: Song, data: ArrayBuffer, source: MediaSource) => {
             setDownloading(downloadingRef.current - 1)
             DownloadQueueStore.remove(task)
-            task.onDownloaded?.(song, data)
+            task.onDownloaded?.(song, data, source)
         }, localCache, task.artist, task.album, task.song)
 
     }, [localCache, queue, downloading])
