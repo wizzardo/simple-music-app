@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.io.File
-import java.io.FileInputStream
 import java.io.InputStream
 
 @RestController
@@ -27,11 +26,11 @@ class ArtistController(
         val MAX_AGE_1_YEAR = "max-age=31556926"
     }
 
-    val cache: Cache<ConvertionTask, File> = Cache(-1, {
+    val cache: Cache<ConversionTask, File> = Cache(-1, {
         processConvertionTask(it)
     })
 
-    private fun processConvertionTask(it: ConvertionTask): File {
+    private fun processConvertionTask(it: ConversionTask): File {
         val artist: Artist = artistService.getArtist(it.artistId)
             ?: throw IllegalArgumentException("Artist not found. id: ${it.artistId}")
         val album: Album = artist.albums.find { album -> album.name == it.albumIdOrName || album.id == it.albumIdOrName || album.path == it.albumIdOrName }
@@ -44,7 +43,12 @@ class ArtistController(
         return ffmpegService.convert(artist, album, song, it.format, it.bitrate)
     }
 
-    private fun startConvertion(it: ConvertionTask): InputStream {
+    data class ConversionStreamResult(
+        val data: InputStream,
+        val format: FFmpegService.AudioFormat,
+    )
+
+    private fun startConversion(it: ConversionTask): ConversionStreamResult {
         val artist: Artist = artistService.getArtist(it.artistId)
             ?: throw IllegalArgumentException("Artist not found. id: ${it.artistId}")
         val album: Album = artist.albums.find { album -> album.name == it.albumIdOrName || album.id == it.albumIdOrName || album.path == it.albumIdOrName }
@@ -57,7 +61,7 @@ class ArtistController(
         return ffmpegService.convertAsStream(artist, album, song, it.format, it.bitrate)
     }
 
-    data class ConvertionTask(
+    data class ConversionTask(
         val artistId: Long,
         val albumIdOrName: String,
         val songIdOrTrackNumber: String,
@@ -245,7 +249,7 @@ class ArtistController(
         val song: Album.Song = album.songs.find { song -> song.id == songIdOrTrackNumber || song.track == trackNumber }
             ?: return ResponseEntity.notFound().build()
 
-        val data = cache.get(ConvertionTask(artistId, albumIdOrName, songIdOrTrackNumber, format, bitrate))
+        val data = cache.get(ConversionTask(artistId, albumIdOrName, songIdOrTrackNumber, format, bitrate))
         val headers = HttpHeaders().apply {
             this.contentLength = data.length()
             this.contentType = MediaType.parseMediaType(format.mimeType)
@@ -271,11 +275,11 @@ class ArtistController(
         val song: Album.Song = album.songs.find { song -> song.id == songIdOrTrackNumber || song.track == trackNumber }
             ?: return ResponseEntity.notFound().build()
 
-        val data = startConvertion(ConvertionTask(artistId, albumIdOrName, songIdOrTrackNumber, format, bitrate))
+        val result = startConversion(ConversionTask(artistId, albumIdOrName, songIdOrTrackNumber, format, bitrate))
         val headers = HttpHeaders().apply {
-            this.contentType = MediaType.parseMediaType(format.mimeType)
+            this.contentType = MediaType.parseMediaType(result.format.mimeType)
         }
-        return ResponseEntity(InputStreamResource(data), headers, HttpStatus.OK)
+        return ResponseEntity(InputStreamResource(result.data), headers, HttpStatus.OK)
     }
 
     @GetMapping(value = ["/artists/{artistIdOrPath}/{albumIdOrPath}/cover.jpg"], produces = ["image/jpeg"])

@@ -13,7 +13,7 @@ export type DownloadTask = {
     song: string,
     format: string,
     bitrate: number,
-    onData?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void,
+    onData?: (song: Song, data: ArrayBuffer, attachAudio?: (audio: HTMLAudioElement) => void) => void,
 }
 
 export const store = new Store({
@@ -53,7 +53,7 @@ export const download = (
     song: string,
     format: string,
     bitrate: number,
-    onData?: (song: Song, data: ArrayBuffer, source?: MediaSource) => void
+    onData?: (song: Song, data: ArrayBuffer, attachAudio?: (audio: HTMLAudioElement) => void) => void
 ) => {
     store.set(state => {
         if (!state.queue.some(it => it.url === url))

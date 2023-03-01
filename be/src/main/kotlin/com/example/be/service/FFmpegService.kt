@@ -1,5 +1,6 @@
 package com.example.be.service
 
+import com.example.be.controller.ArtistController
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.*
 import com.wizzardo.tools.image.ImageTools
@@ -100,13 +101,19 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    fun convertAsStream(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): InputStream {
+    fun convertAsStream(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): ArtistController.ConversionStreamResult {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
-        if (format == AudioFormat.FLAC)
-            if (audio.contains("flac"))
-                return songService.copySongStream(artist, album, song)
-            else
-                throw IllegalArgumentException("Upconvert is not preferred");
+        if (format == AudioFormat.FLAC || format == AudioFormat.WAV)
+            if (song.format == format)
+                return ArtistController.ConversionStreamResult(
+                    songService.copySongStream(artist, album, song),
+                    format
+                )
+            else if (song.format != AudioFormat.FLAC && song.format != AudioFormat.WAV)
+                return ArtistController.ConversionStreamResult(
+                    songService.copySongStream(artist, album, song),
+                    song.format
+                )
 
         val matcher = bitratePattern.matcher(audio)
 
@@ -115,13 +122,26 @@ class FFmpegService(
         else
             320
 
-        if (audio.contains(format.name.lowercase())) {
+        if (song.format == format) {
             if (b <= bitrate)
-                return songService.copySongStream(artist, album, song)
+                return ArtistController.ConversionStreamResult(
+                    songService.copySongStream(artist, album, song),
+                    format
+                )
         }
 
         val songStream = songService.copySongStream(artist, album, song)
-        return doConvertAsStream(songStream, song.format, format, Math.min(bitrate, b))
+        var toBitrate = bitrate
+        if (b < bitrate) {
+            toBitrate = b
+            if ((format == AudioFormat.AAC || format == AudioFormat.OGG) && song.format == AudioFormat.MP3) {
+                toBitrate = (toBitrate * 0.9).toInt()
+            }
+            if ((format == AudioFormat.OPUS) && song.format == AudioFormat.MP3) {
+                toBitrate = (toBitrate * 0.8).toInt()
+            }
+        }
+        return ArtistController.ConversionStreamResult(doConvertAsStream(songStream, song.format, format, toBitrate), format)
     }
 
     fun doConvert(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): File {
@@ -237,10 +257,10 @@ class FFmpegService(
                 toFormat.codec,
                 "-f",
                 toFormat.extension,
-                "-ab",
-                bitrate.toString() + "k",
+                if (toFormat == AudioFormat.WAV || toFormat == AudioFormat.FLAC) "" else "-ab",
+                if (toFormat == AudioFormat.WAV || toFormat == AudioFormat.FLAC) "" else (bitrate.toString() + "k"),
                 "pipe:1"
-            )
+            ).filter { it.isNotBlank() }.toTypedArray()
         println("executing command: ${Arrays.toString(command)}")
         val process = Runtime.getRuntime().exec(command)
 
@@ -398,9 +418,9 @@ class FFmpegService(
 
     enum class AudioFormat(val mimeType: String, val extension: String, val codec: String) {
         MP3("audio/mpeg", "mp3", "libmp3lame"),
-        AAC("audio/aac", "aac", "libfdk_aac"),
+        AAC("audio/aac", "adts", "aac"),
         OGG("audio/ogg", "ogg", "libvorbis"),
-        OPUS("audio/opus", "opus", "libopus"),
+        OPUS("audio/webm; codecs=\"opus\"", "webm", "libopus"),
         FLAC("audio/x-flac", "flac", "flac"),
         WAV("audio/x-wav", "wav", "wav");
 

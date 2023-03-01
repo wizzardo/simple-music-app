@@ -9,7 +9,7 @@ const load = (url,
               artist: string,
               album: string,
               name: string,
-              setAudio?: (song: Song, data?: ArrayBuffer, source?: MediaSource) => void,
+              setAudio?: (song: Song, data?: ArrayBuffer, attachAudio?: (audio: HTMLAudioElement) => void) => void,
               onFinish?: () => void,
 ) => {
     function concat(arrays: Uint8Array[]) {
@@ -51,20 +51,33 @@ const load = (url,
             let bufferPosition = 0;
             let isWaiting = false
 
+            let decode: () => void;
+
             if (setAudio) {
-                const mediaSource = new MediaSource();
-                addEventListener(mediaSource, 'sourceopen', () => {
-                    sourceBuffer = mediaSource.addSourceBuffer(contentType);
-                    isWaiting = true
-                    addEventListener(sourceBuffer, 'updateend', () => {
-                        if (bufferPosition < arrays.length) {
-                            sourceBuffer.appendBuffer(arrays[bufferPosition++]);
-                        } else {
-                            isWaiting = true;
+                setAudio(song, null, audio => {
+                    if (!MediaSource.isTypeSupported(song.type)) {
+                        audio.src = url + '/stream';
+                        return
+                    }
+
+                    const mediaSource = new MediaSource();
+
+                    addEventListener(mediaSource, 'sourceopen', () => {
+                        sourceBuffer = mediaSource.addSourceBuffer(contentType);
+
+                        decode = () => {
+                            if (bufferPosition < arrays.length) {
+                                sourceBuffer.appendBuffer(arrays[bufferPosition++]);
+                            } else {
+                                isWaiting = true;
+                            }
                         }
+                        isWaiting = true
+                        addEventListener(sourceBuffer, 'updateend', decode)
                     })
+
+                    audio.src = audio.dataset.objectUrl = URL.createObjectURL(mediaSource);
                 })
-                setAudio(song, null, mediaSource)
             }
 
             function pump() {
@@ -73,9 +86,8 @@ const load = (url,
                     if (value) {
                         arrays.push(value)
                         if (isWaiting) {
-                            bufferPosition++
                             isWaiting = false;
-                            sourceBuffer.appendBuffer(value)
+                            decode()
                         }
                     }
 
@@ -151,8 +163,8 @@ const DownloadQueue = ({}) => {
         const task = queue[downloading];
 
         setDownloading(downloading + 1)
-        load(task.url, localCache, task.artist, task.album, task.song, (song: Song, data: ArrayBuffer, source: MediaSource) => {
-            task.onData && task.onData(song, data, source)
+        load(task.url, localCache, task.artist, task.album, task.song, (song: Song, data: ArrayBuffer, attachAudio: (audio: HTMLAudioElement) => void) => {
+            task.onData && task.onData(song, data, attachAudio)
         }, () => {
             setDownloading(downloadingRef.current - 1)
             DownloadQueueStore.remove(task)

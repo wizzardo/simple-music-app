@@ -259,15 +259,15 @@ const Player = ({}) => {
             const cachedSong = await localCache.songByUrl(audioUrl);
             console.log(new Date().toISOString(), 'songByUrl', cachedSong, audioUrl)
 
-            const loadAudio = async (song?: Song, data?: ArrayBuffer, source?: MediaSource) => {
+            const loadAudio = async (song?: Song, data?: ArrayBuffer, attachAudio?: (audio: HTMLAudioElement) => void) => {
                 console.log(new Date().toISOString(), 'decoding', song)
                 if (!audio.paused) {
                     audio.pause()
                     console.log(new Date().toISOString(), 'paused')
                 }
 
-                if (source) {
-                    // audio.src = audio.dataset.objectUrl = URL.createObjectURL(source);
+                if (attachAudio) {
+                    attachAudio(audio)
                 } else if (data) {
                     if (data.byteLength === 0) {
                         PlayerStore.next()
@@ -295,7 +295,6 @@ const Player = ({}) => {
             };
 
             if (!cachedSong) {
-                loadAudio()
                 console.log(new Date().toISOString(), 'downloading', audioUrl)
                 DownloadQueueStore.download(
                     audioUrl,
@@ -304,12 +303,11 @@ const Player = ({}) => {
                     song.title,
                     format,
                     bitrate,
-                    null
+                    loadAudio
                 )
             } else {
                 const sd = await localCache.songData(cachedSong.dataId)
                 if (!sd) {
-                    loadAudio()
                     DownloadQueueStore.download(
                         audioUrl,
                         artist.name,
@@ -317,7 +315,7 @@ const Player = ({}) => {
                         song.title,
                         format,
                         bitrate,
-                        null
+                        loadAudio
                     )
                 } else
                     loadAudio(cachedSong, sd.data)
