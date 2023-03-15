@@ -30,10 +30,11 @@ export const setTokenValidUntil = (tokenValidUntil: number) => {
         store.set(() => JSON.parse(savedState))
     }
 
-    if (!savedState || !JSON.parse(savedState).loginRequired) {
-        const isLoginRequired = await NetworkService.isLoginRequired()
-        store.set((state) => {
-            state.loginRequired = isLoginRequired.required
-        })
-    }
+    const isLoginRequired = await NetworkService.isLoginRequired()
+    store.set((state) => {
+        state.loginRequired = isLoginRequired.required
+        if (!isLoginRequired.tokenValid) {
+            state.tokenValidUntil = 0
+        }
+    })
 })()

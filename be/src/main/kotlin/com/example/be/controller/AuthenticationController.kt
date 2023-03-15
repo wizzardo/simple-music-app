@@ -43,13 +43,17 @@ class AuthenticationController(
 
 
     data class LoginRequiredResponse(
-        var required: Boolean = false
+        var required: Boolean = false,
+        var tokenValid: Boolean = false,
     )
 
     @GetMapping("/login/required")
     fun isLoginRequired(
+        @RequestAttribute("permissions") permissions: Set<AuthenticationService.Permission>?,
     ): ResponseEntity<LoginRequiredResponse> {
-        return ResponseEntity.ok(LoginRequiredResponse(authenticationService.isAuthenticationEnabled()))
+        val authenticationEnabled = authenticationService.isAuthenticationEnabled()
+        val tokenValid = permissions != null
+        return ResponseEntity.ok(LoginRequiredResponse(authenticationEnabled, tokenValid))
     }
 
 }
