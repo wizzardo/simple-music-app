@@ -50,6 +50,7 @@ const load = (url,
             let sourceBuffer: SourceBuffer;
             let bufferPosition = 0;
             let isWaiting = false
+            let isFinished = false
 
             let decode: () => void;
 
@@ -68,6 +69,8 @@ const load = (url,
                         decode = () => {
                             if (bufferPosition < arrays.length) {
                                 sourceBuffer.appendBuffer(arrays[bufferPosition++]);
+                            } else if (isFinished) {
+                                mediaSource.endOfStream()
                             } else {
                                 isWaiting = true;
                             }
@@ -92,6 +95,10 @@ const load = (url,
                     }
 
                     if (done) {
+                        isFinished = true;
+                        if (isWaiting) {
+                            decode()
+                        }
                         const data = concat(arrays);
                         // console.log('done', data)
                         song.size = data.byteLength
