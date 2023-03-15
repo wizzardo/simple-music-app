@@ -108,7 +108,7 @@ const Library = ({artistId, album}) => {
           margin-left: 50px;
           margin-bottom: 20px;
         `}>
-            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/artists/'} highlightPath={'/artists/*'}>Artists</NavLink>
+            <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/'} highlightPath={'/'}>Artists</NavLink>
             <NavLink className={LinkStyles} activeClassName={LinkActiveStyles} href={'/albums/'} highlightPath={'/albums/*'}>Albums</NavLink>
         </FlexRow>
 
@@ -117,9 +117,6 @@ const Library = ({artistId, album}) => {
         </Route>
         <Route path={"/albums"}>
             <ListAlbums cardWidth={albumCardWidth}/>
-        </Route>
-        <Route path={"/artists"}>
-            <ListArtists cardWidth={albumCardWidth}/>
         </Route>
         <Route path={"/:artistId(^[0-9]+$)?"}>
             <ListArtistAlbums cardWidth={albumCardWidth} artistId={null}/>

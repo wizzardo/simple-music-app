@@ -93,14 +93,6 @@ export default () => {
                       }
                     `)} flat round onClick={e => {
                         window.history.back()
-                        // let pathname = window.location.pathname;
-                        // let i = pathname.lastIndexOf('/');
-                        // if (i === pathname.length - 1)
-                        //     i = pathname.lastIndexOf('/', i - 1)
-                        // pathname = pathname.substring(0, i + 1)
-                        // if (!pathname)
-                        //     pathname = '/'
-                        // pushLocation(pathname)
                     }}>
                         <MaterialIcon icon={'chevron_left'}/>
                     </Button>}
@@ -125,7 +117,7 @@ export default () => {
                     <Settings/>
                 </Route>
 
-                <Route path={["/:artistId(^[0-9]+$)?/:album?", "/artists", "/albums"]}>
+                <Route path={["/:artistId(^[0-9]+$)?/:album?", "/", "/albums"]}>
                     <Library artistId={null} album={null}/>
                 </Route>
 
