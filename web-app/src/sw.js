@@ -15,7 +15,7 @@ self.addEventListener('install', event => {
 async function fetchAndCache(request) {
     const response = await fetch(request)
     let contentType = response.headers.get('Content-Type');
-    console.log('fetchAndCache', request.url, contentType)
+    console.log('fetchAndCache', request.url, contentType, response.status)
 
     if (response.status === 200 && contentType && (!contentType.startsWith("audio") || request.url.endsWith('.mp3'))) {
         const cache = await caches.open(RUNTIME);
@@ -98,9 +98,15 @@ self.addEventListener('fetch', event => {
         event.respondWith(cachedOrFetch(request));
     } else if (url.startsWith(self.location.origin)) {
         if (request.headers.get('Accept').indexOf('text/html') !== -1) {
-            event.respondWith(fetchOrCachedOnTimeout(
-                new Request(url.substring(0, url.indexOf('/', 10) + 1), {...request}), 300, clientId
-            ));
+            fetchOrCachedOnTimeout(request, 30, clientId).then(response => {
+                if (response.status === 404) {
+                    event.respondWith(fetchOrCachedOnTimeout(
+                        new Request(url.substring(0, url.indexOf('/', 10) + 1), {...request}), 300, clientId
+                    ))
+                } else {
+                    event.respondWith(response)
+                }
+            })
         } else
             event.respondWith(fetchOrCachedOnTimeout(request, 30, clientId));
     }
