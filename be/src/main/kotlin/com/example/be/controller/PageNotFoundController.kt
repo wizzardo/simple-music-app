@@ -1,5 +1,7 @@
 package com.example.be.controller
 
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -11,7 +13,7 @@ import org.springframework.web.servlet.NoHandlerFoundException
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
-
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice
 class PageNotFoundController {
 
