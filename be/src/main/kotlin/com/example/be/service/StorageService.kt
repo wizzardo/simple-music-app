@@ -1,19 +1,15 @@
 package com.example.be.service
 
+import com.wizzardo.cloud.storage.CredentialsProvider
 import com.wizzardo.cloud.storage.FileInfo
 import com.wizzardo.cloud.storage.S3Storage
 import com.wizzardo.cloud.storage.Storage
-import com.wizzardo.cloud.storage.degoo.DegooStorage
 import com.wizzardo.cloud.storage.fs.LocalStorage
-import com.wizzardo.cloud.storage.terabox.TeraboxStorage
 import com.wizzardo.cloud.storage.webdav.WebdavStorage
-import com.wizzardo.tools.json.JsonObject
-import com.wizzardo.tools.json.JsonTools
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.File
 import java.io.InputStream
-import java.time.LocalDateTime
 
 @Component
 class StorageService(
@@ -44,7 +40,7 @@ class StorageService(
 
         storage = when (type) {
             "local" -> LocalStorage(File(path)) as Storage<FileInfo>
-            "terabox" -> TeraboxStorage() as Storage<FileInfo>
+//            "terabox" -> TeraboxStorage() as Storage<FileInfo>
             "s3" -> S3Storage(
                 System.getenv("STORAGE_S3_HOST"),
                 System.getenv("STORAGE_S3_BUCKET"),
@@ -56,29 +52,29 @@ class StorageService(
                 System.getenv("STORAGE_WEBDAV_USERNAME"),
                 System.getenv("STORAGE_WEBDAV_PASSWORD")
             ) as Storage<FileInfo>
-            "degoo" -> DegooStorage(username, password).also {
-                it.setTokenGetterSetter({
-                    configRepository.findByName("DEGOO_TOKEN")?.data?.data()?.let {
-                        JsonTools.parse(it).asJsonObject().getAsString("token")
-                    }
-                }, {
-                    val config = configRepository.findByName("DEGOO_TOKEN")
-                    if (config != null) {
-                        config.updated = LocalDateTime.now()
-                        config.data = JSONB.valueOf(JsonObject().append("token", it).toString())
-                        configRepository.update(config)
-                    } else
-                        configRepository.insert(
-                            Config(
-                                0,
-                                LocalDateTime.now(),
-                                LocalDateTime.now(),
-                                "DEGOO_TOKEN",
-                                JSONB.valueOf(JsonObject().append("token", it).toString())
-                            )
-                        )
-                })
-            } as Storage<FileInfo>
+//            "degoo" -> DegooStorage(username, password).also {
+//                it.setTokenGetterSetter({
+//                    configRepository.findByName("DEGOO_TOKEN")?.data?.data()?.let {
+//                        JsonTools.parse(it).asJsonObject().getAsString("token")
+//                    }
+//                }, {
+//                    val config = configRepository.findByName("DEGOO_TOKEN")
+//                    if (config != null) {
+//                        config.updated = LocalDateTime.now()
+//                        config.data = JSONB.valueOf(JsonObject().append("token", it).toString())
+//                        configRepository.update(config)
+//                    } else
+//                        configRepository.insert(
+//                            Config(
+//                                0,
+//                                LocalDateTime.now(),
+//                                LocalDateTime.now(),
+//                                "DEGOO_TOKEN",
+//                                JSONB.valueOf(JsonObject().append("token", it).toString())
+//                            )
+//                        )
+//                })
+//            } as Storage<FileInfo>
             else -> throw IllegalArgumentException("Unknown storage type: ${type}")
         }
 
