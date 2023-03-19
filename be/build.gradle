@@ -108,7 +108,7 @@ sqlTools {
 }
 
 task([type: Jar, description: 'Generates lambda jar with all dependencies'], 'lambdaJar', {
-    baseName = project.name + '-all'
+    archiveBaseName = project.name + '-all'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from { sourceSets.main.runtimeClasspath.collect { !it.isFile() ? it : zipTree(it) } }
     exclude 'META-INF/*'
