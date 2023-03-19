@@ -139,6 +139,7 @@ class SongsStorageService(
     }
 
     fun putCover(artist: Artist, album: Album, bytes: ByteArray) {
+        storageService.createFolder("${artist.path()}/${album.path()}")
         if (!album.coverEncryptionKey.isNullOrEmpty()) {
             val aes = AES(Base64.decodeFast(album.coverEncryptionKey, true))
             val encrypted = aes.encrypt(bytes)

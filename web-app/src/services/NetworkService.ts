@@ -105,7 +105,7 @@ export default {
     createAlbum: createPOST<ArtistDto, CreateAlbumRequest>('/artists/{artistId}/album'),
     createArtist: createPOST<ArtistDto, CreateArtistRequest>('/artists/'),
     mergeAlbums: createPOST<ArtistDto, MergeAlbumsRequest>('/artists/{artistId}/{intoAlbumId}'),
-    moveAlbum: createPOST('/artists/{artistId}/{albumId}/{toArtistId}'),
+    moveAlbum: createPOST('/artists/{artistId}/{albumId}/moveTo/{toArtistId}'),
     updateArtist: createPOST<ArtistDto, ArtistDto>('/artists/{id}'),
     uploadCoverArt: createMultipart<ArtistDto>('/artists/{artistId}/{albumId}/cover'),
     deleteAlbum: createDELETE<ArtistDto>('/artists/{artistId}/{albumId}'),

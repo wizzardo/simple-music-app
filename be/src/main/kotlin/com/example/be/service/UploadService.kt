@@ -4,7 +4,6 @@ import com.example.be.db.DBService
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.Album
 import com.example.be.service.FFmpegService.MetaData
-import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.security.MD5
 import com.wizzardo.tools.sql.query.QueryBuilder
 import org.springframework.http.ResponseEntity
@@ -188,7 +187,16 @@ class UploadService(
     }
 
     fun uploadCoverArt(artist: Artist, album: Album, file: MultipartFile): Artist {
-        val imageBytes = ImageTools.saveJPGtoBytes(ImageTools.read(file.bytes), 90)
+        val imageBytes = file.bytes
+        album.coverPath = "cover.jpg"
+        album.coverHash = MD5.create().update(imageBytes).toString()
+        songsStorageService.putCover(artist, album, imageBytes)
+        return artistService.update(artist.id, artist, artist)
+    }
+
+    fun uploadCoverArt(artist: Artist, album: Album, file: File): Artist {
+        val imageBytes = file.readBytes()
+        file.delete()
         album.coverPath = "cover.jpg"
         album.coverHash = MD5.create().update(imageBytes).toString()
         songsStorageService.putCover(artist, album, imageBytes)

@@ -12,7 +12,7 @@ public class DBService extends DBTools {
 
     public DBService(ConnectionPoolDataSource dataSource) {
         this.dataSource = new SimpleConnectionPool(dataSource, 2);
-//        ForkJoinPool.commonPool().execute(() -> init());
+        ForkJoinPool.commonPool().execute(this::init);
     }
 
     public void init() {
