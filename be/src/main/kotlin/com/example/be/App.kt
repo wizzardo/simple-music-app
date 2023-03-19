@@ -231,7 +231,7 @@ class App(args: Array<out String>?) : WebApplication(args) {
             poolDataSource.tcpKeepAlive = true
             poolDataSource.preparedStatementCacheSizeMiB = 1
             poolDataSource.preparedStatementCacheQueries = 32
-            poolDataSource.sslMode = "prefer"
+            poolDataSource.sslMode = "disable"
 
             return poolDataSource
         }
