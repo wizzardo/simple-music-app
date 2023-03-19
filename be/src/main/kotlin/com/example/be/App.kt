@@ -220,7 +220,7 @@ class App(args: Array<out String>?) : WebApplication(args) {
             val host = url.substringAfter("://").substringBefore("/")
 
             val poolDataSource = org.postgresql.ds.PGConnectionPoolDataSource()
-            poolDataSource.databaseName = dbName
+            poolDataSource.databaseName = dbName.substringBefore("?")
             poolDataSource.serverNames = arrayOf(host.substringBefore(":"))
             poolDataSource.portNumbers = intArrayOf(host.substringAfter(":").toIntOrNull() ?: 5432)
             poolDataSource.user = username
