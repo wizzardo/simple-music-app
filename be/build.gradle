@@ -44,7 +44,8 @@ group = "com.example"
 version = "0.0.1-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_11
 
-mainClassName = 'com.example.be.BeApplication'
+
+mainClassName = 'com.example.be.App'
 
 repositories {
     mavenCentral()
@@ -140,3 +141,15 @@ task([description: 'listing all public files'], 'listPublicFiles', {
     }
 })
 tasks.processResources.dependsOn listPublicFiles
+
+
+task resolveDependencies {
+    setDescription "Resolves all projects dependencies from the repository."
+    doLast {
+        rootProject.allprojects { project ->
+            Set<Configuration> configurations = project.buildscript.configurations + project.configurations
+            configurations.findAll { c -> c.canBeResolved }
+                    .forEach { c -> c.resolve() }
+        }
+    }
+}
