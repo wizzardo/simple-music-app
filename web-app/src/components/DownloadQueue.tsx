@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {useStore} from "react-ui-basics/store/Store";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {Song, SongLocalCacheDB, useLocalCache} from "../services/LocalCacheService";
-import {addEventListener} from "react-ui-basics/Tools";
+import {addEventListener, clearInterval, removeEventListener, setInterval} from "react-ui-basics/Tools";
 
 const load = (url,
               localCache: SongLocalCacheDB,
@@ -51,6 +51,7 @@ const load = (url,
             let bufferPosition = 0;
             let isWaiting = false
             let isFinished = false
+            let totalAdded = 0
 
             let decode: () => void;
 
@@ -63,18 +64,45 @@ const load = (url,
 
                     const mediaSource = new MediaSource();
 
+                    let updateInterval = null
+                    let detached = false
+
                     addEventListener(mediaSource, 'sourceopen', () => {
                         sourceBuffer = mediaSource.addSourceBuffer(contentType);
 
                         decode = () => {
+                            if (detached) return
                             if (bufferPosition < arrays.length) {
-                                sourceBuffer.appendBuffer(arrays[bufferPosition++]);
+                                if (!sourceBuffer.buffered.length || sourceBuffer.buffered.end(0) - audio.currentTime < 300) {
+                                    let buffer = arrays[bufferPosition++];
+                                    totalAdded += buffer.length
+                                    sourceBuffer.appendBuffer(buffer);
+                                    clearInterval(updateInterval)
+                                } else {
+                                    clearInterval(updateInterval)
+                                    updateInterval = setInterval(decode, 1000)
+                                }
                             } else if (isFinished) {
                                 mediaSource.endOfStream()
                             } else {
                                 isWaiting = true;
                             }
                         }
+                        let pauseListener = () => {
+                            clearInterval(updateInterval)
+                        };
+                        let playListener = () => {
+                            decode()
+                        };
+                        addEventListener(audio, 'pause', pauseListener)
+                        addEventListener(audio, 'play', playListener)
+                        mediaSource.onsourceclose = () => {
+                            detached = true
+                            clearInterval(updateInterval)
+                            removeEventListener(audio, 'pause', pauseListener)
+                            removeEventListener(audio, 'play', pauseListener)
+                        }
+
                         isWaiting = true
                         addEventListener(sourceBuffer, 'updateend', decode)
                     })
