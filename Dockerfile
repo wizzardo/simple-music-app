@@ -33,6 +33,7 @@ RUN ./gradlew -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" :be:resolveDependencies
 COPY be be
 COPY --from=web-builder /tmp/app/build be/src/main/resources/public
 
+RUN ./gradlew :be:generateTables
 RUN ./gradlew -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" fatJar
 
 FROM bellsoft/liberica-openjdk-alpine:11
