@@ -3,6 +3,7 @@ package com.example.be.service
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.Album
 import com.example.be.db.model.Artist.Album.Song
+import com.wizzardo.tools.misc.Unchecked
 import com.wizzardo.tools.security.AES
 import com.wizzardo.tools.security.Base64
 import org.springframework.beans.factory.annotation.Value
@@ -92,7 +93,7 @@ class SongsStorageService(
         album.songs.forEach {
             delete(artist, album, it)
         }
-        
+
         if (album.coverPath != null)
             storageService.delete("${artist.path()}/${album.path()}/${album.coverPath()}")
 
@@ -131,6 +132,9 @@ class SongsStorageService(
                 }
 
                 storageService.put("${artist.path()}/${album.path()}/${song.path()}", tempFile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw Unchecked.rethrow(e)
             } finally {
                 tempFile.delete()
             }

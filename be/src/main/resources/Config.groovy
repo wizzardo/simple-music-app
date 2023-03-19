@@ -27,8 +27,8 @@ storage {
     type = 'local'
     path = 'share'
     subpath = 'subfolder'
-    encryption = true
-    useIdAsName = true
+    encryption = 'true'
+    useIdAsName = 'true'
 }
 auth {
     username = ''
