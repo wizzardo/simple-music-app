@@ -28,3 +28,5 @@ jobs:
           push: true
           tags: wizzardo/sma:latest
           platforms: linux/amd64,linux/arm64
+          cache-from: type=registry,ref=wizzardo/sma:buildcache
+          cache-to: type=registry,ref=wizzardo/sma:buildcache,mode=max
