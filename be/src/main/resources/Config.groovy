@@ -6,7 +6,7 @@ server {
     resources {
         mapping = '/'
         cache {
-            enabled = false
+            enabled = true
         }
     }
     debugOutput = false

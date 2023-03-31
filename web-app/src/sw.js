@@ -34,11 +34,21 @@ async function cachedOrFetch(request) {
 
 async function fetchOrCachedOnTimeout(request, timeout, clientId) {
     const cachedResponse = await caches.match(request);
-    if (!cachedResponse)
+    if (!cachedResponse) {
         return fetchAndCache(request)
+    }
 
     return new Promise((resolve, reject) => {
         let resolved = false;
+        const etag = cachedResponse.headers.get('ETag');
+        if (etag) {
+            const headers = new Headers(request.headers);
+            headers.set('If-None-Match', etag)
+            request = new Request(request, {
+                headers: headers
+            })
+        }
+
         fetchAndCache(request).then(response => {
             if (!resolved) {
                 console.log('resolve fetched', request.url)
