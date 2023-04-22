@@ -19,19 +19,9 @@ import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {DownloadTask} from "../stores/DownloadQueueStore";
 import {useWindowSize} from "../utils/Hooks";
 import NavLink from "react-ui-basics/router/NavLink";
+import Image from "./Image";
 
 
-const Cover = styled("img")`
-  border-radius: 4px;
-  max-width: 100%;
-  max-height: 150px;
-`;
-const SmallCover = styled("img")`
-  max-width: 75px;
-  max-height: 75px;
-  min-width: 75px;
-  min-height: 75px;
-`;
 const Album = styled("div")`
   display: inline-flex;
   flex-flow: column nowrap;
@@ -169,8 +159,26 @@ const Artist = styled("div")`
   }
 `;
 
-const AlbumCover = ({artistId, album}) => <Cover src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath} alt={album.name}/>
-const SmallAlbumCover = ({artistId, album}) => <SmallCover src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath} alt={album.name}/>
+const AlbumCover = ({artistId, album}) => <Image
+    className={css`
+      border-radius: 4px;
+      max-width: 100%;
+      max-height: 150px;`
+    }
+    src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath}
+    alt={album.name}
+/>
+
+const SmallAlbumCover = ({artistId, album}) => <Image
+    className={css`
+      max-width: 75px;
+      max-height: 75px;
+      min-width: 75px;
+      min-height: 75px;
+    `}
+    src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath}
+    alt={album.name}
+/>
 
 const ListArtists = ({cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -369,7 +377,7 @@ const ListSongs = ({artistId, albumName}) => {
       flex-flow: row ${isMobile ? 'wrap' : 'nowrap'};
       align-items: flex-start;`}>
 
-        {album.coverPath && <Cover
+        {album.coverPath && <Image
             className={classNames(isMobile && css`
               width: 100%;
               max-height: 300px;

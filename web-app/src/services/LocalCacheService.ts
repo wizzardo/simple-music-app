@@ -3,6 +3,7 @@ import Store, {useStore} from "react-ui-basics/store/Store";
 
 const SONGS_STORE_NAME = "songs";
 const SONG_DATA_STORE_NAME = "song_data";
+const WEB_CACHE_STORE_NAME = "web_cache";
 
 export interface Song {
     url: string
@@ -17,6 +18,12 @@ export interface Song {
 }
 
 export interface SongData {
+    data: ArrayBuffer,
+}
+
+export interface WebCacheEntry {
+    url: string
+    etag: string,
     data: ArrayBuffer,
 }
 
@@ -90,6 +97,21 @@ export class SongLocalCacheDB extends DB {
             .add(song)
             .asPromise()
     }
+
+    async addWebCacheEntry(entry: WebCacheEntry) {
+        const tr = this.trRW(WEB_CACHE_STORE_NAME);
+        return await tr.objectStore<WebCacheEntry, number>(WEB_CACHE_STORE_NAME)
+            .add(entry)
+            .asPromise();
+    }
+
+    async getWebCacheEntry(url: string) {
+        return this.trRO(WEB_CACHE_STORE_NAME)
+            .objectStore<WebCacheEntry, number>(WEB_CACHE_STORE_NAME)
+            .index<string>('url')
+            .get(url)
+            .asPromise()
+    }
 }
 
 const db = new SongLocalCacheDB("localCache", [
@@ -116,6 +138,15 @@ const db = new SongLocalCacheDB("localCache", [
         name: () => 'adding song_data',
         execute: async (tr, db, wrapper) => {
             db.createObjectStore(SONG_DATA_STORE_NAME, {autoIncrement: true});
+        }
+    },
+    {
+        version: () => 4,
+        name: () => 'adding web_cache',
+        execute: async (tr, db, wrapper) => {
+            db.createObjectStore(WEB_CACHE_STORE_NAME, {autoIncrement: true});
+            const store = tr.objectStore<WebCacheEntry, number>(WEB_CACHE_STORE_NAME);
+            store.createIndex("url", "url", {unique: true});
         }
     },
 ]) as SongLocalCacheDB

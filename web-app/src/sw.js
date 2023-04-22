@@ -86,7 +86,7 @@ self.addEventListener('fetch', event => {
     if (request.method !== 'GET')
         return;
 
-    let url = request.url;
+    const url = request.url;
     const clientId = event.clientId;
 
     // if(url.endsWith('/')){
@@ -96,6 +96,8 @@ self.addEventListener('fetch', event => {
 
     // console.log('sw.fetch', url)
     if (url.startsWith('http://localhost'))
+        return
+    if (url.endsWith('/cover.jpg'))
         return
 
     if (url.startsWith('https://fonts.gstatic.com')) {
