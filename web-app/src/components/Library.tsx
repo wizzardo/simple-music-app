@@ -378,14 +378,18 @@ const ListSongs = ({artistId, albumName}) => {
       align-items: flex-start;`}>
 
         {album.coverPath && <Image
-            className={classNames(isMobile && css`
-              width: 100%;
-              max-height: 300px;
-              max-width: 300px;
-              margin-left: auto;
-              margin-right: auto;
-              margin-bottom: 20px;
-            `)}
+            className={classNames(css`
+                      border-radius: 4px;
+                      max-width: 100%;
+                      max-height: 150px;`,
+                isMobile && css`
+                      width: 100%;
+                      max-height: 300px;
+                      max-width: 300px;
+                      margin-left: auto;
+                      margin-right: auto;
+                      margin-bottom: 20px;
+                `)}
             src={NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath} alt={album.name}
         />}
         {!album.coverPath && <MaterialIcon className={css`
