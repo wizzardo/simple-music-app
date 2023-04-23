@@ -4,6 +4,8 @@ import {css} from "goober";
 import {classNames} from "react-ui-basics/Tools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import NetworkService, {AlbumDto} from "../services/NetworkService";
+import * as BlobStore from "../stores/BlobStore";
+import {useStore} from "react-ui-basics/store/Store";
 
 const AlbumCoverStyles = css`
   &.AlbumCover {
@@ -53,18 +55,21 @@ type AlbumCoverProps = {
     artistId: number,
     album?: AlbumDto,
     className?: 'small' | 'mobile' | string
+    forceShow?: boolean
 };
-const AlbumCover = ({artistId, album, className}: AlbumCoverProps) => {
+const AlbumCover = ({artistId, album, className, forceShow}: AlbumCoverProps) => {
     const src = album?.coverPath ? NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath : null;
-    const [loaded, setLoaded] = useState<boolean>()
     const ref = useRef<HTMLDivElement>();
-    const isShownOrLoaded = useIsShownOnScreen(ref.current) || loaded
-    const buffer = useWebCache(isShownOrLoaded && src ? src : null);
-    const blobUrl = useBlobUrl(buffer)
+    const blobUrl = useStore(BlobStore.store, state => state[src])
+    const isShown = useIsShownOnScreen(ref.current) || !!forceShow
+    const buffer = useWebCache(isShown && !blobUrl && src ? src : null);
 
     useEffect(() => {
-        buffer && setLoaded(true)
-    }, [buffer])
+        if (!buffer || blobUrl) return
+
+        const blob = new Blob([buffer]);
+        BlobStore.add(src, URL.createObjectURL(blob))
+    }, [buffer, blobUrl])
 
     return <div ref={ref} className={classNames('AlbumCover', AlbumCoverStyles, className)}>
         {blobUrl && <img src={blobUrl} alt={album?.name}/>}

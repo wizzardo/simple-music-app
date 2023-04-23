@@ -23,6 +23,7 @@ import {UploadForm} from "./UploadForm";
 import {formatDuration, getAlbumDuration} from "../utils/Helpers";
 import {FlexColumn, FlexRow, smallIconButtonCss} from "./SharedComponents";
 import {createProxy} from 'react-ui-basics/store/ProxyTools.js';
+import AlbumCover from "./AlbumCover";
 
 export const DateFormatter = (date, item, format = 'YY-MM-DD hh:mm:ss') => date && dayjs(date).format(format);
 
@@ -251,14 +252,7 @@ const ListAlbumsArtists = ({artists}: { artists: ArtistDto[] }) => {
                 {
                     field: 'coverPath',
                     sortable: false,
-                    formatter: ((it, item) => {
-                        if (it)
-                            return <CoverSmall src={NetworkService.baseurl + '/artists/' + item.artistId + '/' + item.id + '/' + it} alt={'cover'}/>;
-                        else
-                            return <MaterialIcon className={css`
-                              font-size: 50px;
-                            `} icon={'album'}/>;
-                    })
+                    formatter: ((it, item) => <AlbumCover artistId={item.artistId} album={item} forceShow={true}/>)
                 },
                 {
                     field: 'name',
@@ -542,14 +536,7 @@ const ListAlbums = ({artist}: { artist: ArtistDto }) => {
                 {
                     field: 'coverPath',
                     sortable: false,
-                    formatter: ((it, item) => {
-                        if (it)
-                            return <Cover src={NetworkService.baseurl + '/artists/' + artist?.id + '/' + item.id + '/' + it} alt={'cover'}/>;
-                        else
-                            return <MaterialIcon className={css`
-                              font-size: 50px;
-                            `} icon={'album'}/>;
-                    })
+                    formatter: ((it, item) => <AlbumCover artistId={artist.id} album={item} forceShow={true}/>)
                 },
                 {
                     field: 'name',
@@ -696,10 +683,7 @@ const ListSongs = ({artist, album}: { artist: ArtistDto, album: AlbumDto }) => {
                 NetworkService.uploadCoverArt({file, artistId: artist.id, albumId: album.id})
                     .then(ArtistsStore.set)
             }}>
-                {album?.coverPath && <Cover src={NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath} alt={'cover'}/>}
-                {!album?.coverPath && <MaterialIcon className={css`
-                  font-size: 50px;
-                `} icon={'album'}/>}
+                <AlbumCover artistId={artist.id} album={album} forceShow={true}/>
             </Dropzone>
 
             <span className={css`width: 25px;`}/>

@@ -9,6 +9,7 @@ import {useStore} from "react-ui-basics/store/Store";
 import * as ArtistsStore from "../stores/ArtistsStore";
 import * as PlayerStore from "../stores/PlayerStore";
 import * as AuthenticationStore from "../stores/AuthenticationStore";
+import * as BlobStore from "../stores/BlobStore";
 import {css} from "goober";
 import NetworkService from "../services/NetworkService";
 import CacheStats from "./CacheStats";
@@ -29,8 +30,10 @@ export default () => {
     const queuedSong = queue[position]
     const artist = artistsStore.map[queuedSong?.artistId];
     const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
+
+    const coverBackgroundUrl = useStore(BlobStore.store, t => t[`${NetworkService.baseurl}/artists/${artist?.id}/${album?.id}/${album?.coverPath}`])
     const coverBackground = playing && album && css`
-      background-image: url('${NetworkService.baseurl}/artists/${artist.id}/${album.id}/${album.coverPath}');
+      background-image: url('${coverBackgroundUrl}');
     `;
 
     const windowSize = useWindowSize();

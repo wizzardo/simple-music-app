@@ -17,6 +17,7 @@ import WindowActiveStore from "../stores/WindowActiveStore";
 import {useIsSafari} from "../utils/Hooks";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {pushLocation} from "react-ui-basics/router/HistoryTools";
+import BlobStore from "../stores/BlobStore";
 
 const Player = ({}) => {
     const localCache = useLocalCache();
@@ -89,15 +90,15 @@ const Player = ({}) => {
             const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
             const song = album?.songs?.find(it => it.id === queuedSong?.songId);
             const duration = song?.duration / 1000
-
+            const artwork = BlobStore.get()[NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath];
 
             if (navigator.mediaSession) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: song.title,
                     album: album.name,
                     artist: artist.name,
-                    artwork: !album.coverHash ? [] : [
-                        {src: NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath, type: 'image/jpeg'}
+                    artwork: !artwork ? [] : [
+                        {src: artwork, type: 'image/jpeg'}
                     ]
                 });
 
@@ -175,15 +176,15 @@ const Player = ({}) => {
                 const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
                 const song = album?.songs?.find(it => it.id === queuedSong?.songId);
                 const duration = song?.duration / 1000
-
+                const artwork = BlobStore.get()[NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath];
 
                 if (navigator.mediaSession) {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: song.title,
                         album: album.name,
                         artist: artist.name,
-                        artwork: !album.coverHash ? [] : [
-                            {src: NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath, type: 'image/jpeg'}
+                        artwork: !artwork ? [] : [
+                            {src: artwork, type: 'image/jpeg'}
                         ]
                     });
                     // navigator.mediaSession.setPositionState({
