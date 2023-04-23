@@ -1,11 +1,12 @@
-import {useWebCache} from "../utils/Hooks";
-import {useEffect, useState} from "react";
-
+import {useIsShownOnScreen, useWebCache} from "../utils/Hooks";
+import {useEffect, useRef, useState} from "react";
 
 const Image = ({src, alt, className}) => {
-    const buffer = useWebCache(src);
-
     const [blobUrl, setBlobUrl] = useState<string>()
+    const ref = useRef<HTMLImageElement>();
+    const isShownOrLoaded = useIsShownOnScreen(ref.current) || !!blobUrl
+    const buffer = useWebCache(isShownOrLoaded ? src : null);
+
     useEffect(() => {
         if (!buffer)
             return;
@@ -16,10 +17,7 @@ const Image = ({src, alt, className}) => {
         return () => URL.revokeObjectURL(blobUrl);
     }, [buffer])
 
-    if (!blobUrl)
-        return null
-
-    return <img src={blobUrl} alt={alt} className={className}/>
+    return <img ref={ref} src={(isShownOrLoaded && blobUrl) || ''} alt={alt} className={className}/>
 }
 
 export default Image

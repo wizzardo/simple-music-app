@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {WINDOW} from "react-ui-basics/Tools";
 import {useLocalCache, WebCacheEntry} from "../services/LocalCacheService";
 
@@ -36,6 +36,8 @@ export const useWebCache = (url): ArrayBuffer => {
         (async () => {
             if (!localCache)
                 return;
+            if (!url)
+                return;
 
             let cacheEntry = await localCache.getWebCacheEntry(url);
             if (cacheEntry)
@@ -49,7 +51,6 @@ export const useWebCache = (url): ArrayBuffer => {
 
             if (response.status == 200) {
                 const etag = response.headers.get("ETag");
-                debugger
                 const blob = await response.blob();
                 const data = await blob.arrayBuffer();
                 cacheEntry = {
@@ -69,3 +70,24 @@ export const useWebCache = (url): ArrayBuffer => {
 
     return value?.data
 }
+
+export const useIsShownOnScreen = (element: Element) => {
+    const [isShown, setIsShown] = useState(false);
+
+    const observer = useMemo(() => new IntersectionObserver(([entry]) =>
+        setIsShown(entry.isIntersecting),
+    ), []);
+
+    useEffect(() => {
+        if (!element)
+            return;
+
+        observer.observe(element);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [element, observer]);
+
+    return isShown;
+};
