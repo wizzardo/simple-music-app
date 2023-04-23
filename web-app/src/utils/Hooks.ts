@@ -43,27 +43,32 @@ export const useWebCache = (url): ArrayBuffer => {
             if (cacheEntry)
                 setValue(cacheEntry)
 
-            const response = await fetch(url, {
-                headers: {
-                    'If-None-Match': cacheEntry?.etag || ''
-                }
-            });
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'If-None-Match': cacheEntry?.etag || ''
+                    }
+                });
 
-            if (response.status == 200) {
-                const etag = response.headers.get("ETag");
-                const blob = await response.blob();
-                const data = await blob.arrayBuffer();
-                cacheEntry = {
-                    url,
-                    etag,
-                    data
+                if (response.status == 200) {
+                    const etag = response.headers.get("ETag");
+                    const blob = await response.blob();
+                    const data = await blob.arrayBuffer();
+                    cacheEntry = {
+                        url,
+                        etag,
+                        data
+                    }
+                    if (etag)
+                        localCache.addWebCacheEntry(cacheEntry)
+                    setValue(cacheEntry)
+                } else if (response.status == 304) {
+                    return
+                } else {
+                    console.log("unexpected response", url, response.status, response.text())
                 }
-                localCache.addWebCacheEntry(cacheEntry)
-                setValue(cacheEntry)
-            } else if (response.status == 304) {
-                return
-            } else {
-                console.log("unexpected response", url, response.status, response.text())
+            } catch (e) {
+                console.error(`Failed to load ${url}`, e)
             }
         })()
     }, [url, localCache])
@@ -91,3 +96,19 @@ export const useIsShownOnScreen = (element: Element) => {
 
     return isShown;
 };
+
+export const useBlobUrl = (buffer: ArrayBuffer) => {
+    const [url, setUrl] = useState<string>()
+
+    useEffect(() => {
+        if (!buffer)
+            return;
+
+        const blob = new Blob([buffer]);
+        const blobUrl = URL.createObjectURL(blob);
+        setUrl(blobUrl);
+        return () => URL.revokeObjectURL(blobUrl);
+    }, [buffer])
+
+    return url
+}

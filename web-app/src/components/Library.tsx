@@ -19,7 +19,7 @@ import * as DownloadQueueStore from "../stores/DownloadQueueStore";
 import {DownloadTask} from "../stores/DownloadQueueStore";
 import {useWindowSize} from "../utils/Hooks";
 import NavLink from "react-ui-basics/router/NavLink";
-import Image from "./Image";
+import AlbumCover from "./AlbumCover";
 
 
 const Album = styled("div")`
@@ -135,10 +135,7 @@ const ListAlbums = ({cardWidth}) => {
         `} onClick={e => {
             pushLocation(`/${it.artistId}/${it.name}`)
         }}>
-            {it?.coverPath && <AlbumCover artistId={it.artistId} album={it}/>}
-            {!it?.coverPath && <MaterialIcon className={css`
-              font-size: 50px;
-            `} icon={'album'}/>}
+            <AlbumCover artistId={it.artistId} album={it}/>
             <AlbumTitle>{it.name}</AlbumTitle>
             <AlbumArtist>{artistsStore.map[it.artistId].name}</AlbumArtist>
             <AlbumDuration>{formatDuration(getAlbumDuration(it))}</AlbumDuration>
@@ -158,27 +155,6 @@ const Artist = styled("div")`
     cursor: pointer;
   }
 `;
-
-const AlbumCover = ({artistId, album}) => <Image
-    className={css`
-      border-radius: 4px;
-      max-width: 100%;
-      max-height: 150px;`
-    }
-    src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath}
-    alt={album.name}
-/>
-
-const SmallAlbumCover = ({artistId, album}) => <Image
-    className={css`
-      max-width: 75px;
-      max-height: 75px;
-      min-width: 75px;
-      min-height: 75px;
-    `}
-    src={NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath}
-    alt={album.name}
-/>
 
 const ListArtists = ({cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
@@ -219,12 +195,12 @@ const ListArtists = ({cardWidth}) => {
                       overflow: hidden;
                     `}>
                         <FlexRow>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[0]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[1]}/>
                         </FlexRow>
                         <FlexRow>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[1]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[0]}/>
                         </FlexRow>
                     </FlexColumn>}
                 {albumsWithCovers.length >= 4 &&
@@ -233,17 +209,15 @@ const ListArtists = ({cardWidth}) => {
                       overflow: hidden;
                     `}>
                         <FlexRow>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[0]}/>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[1]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[0]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[1]}/>
                         </FlexRow>
                         <FlexRow>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[2]}/>
-                            <SmallAlbumCover artistId={id} album={albumsWithCovers[3]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[2]}/>
+                            <AlbumCover className={'small'} artistId={id} album={albumsWithCovers[3]}/>
                         </FlexRow>
                     </FlexColumn>}
-                {albumsWithCovers.length === 0 && <MaterialIcon className={css`
-                  font-size: 50px;
-                `} icon={'album'}/>}
+                {albumsWithCovers.length === 0 && <AlbumCover artistId={id}/>}
                 <AlbumArtist>{artist.name}</AlbumArtist>
                 <AlbumDuration>{artist.albums.length} {artist.albums.length === 1 ? 'album' : 'albums'}</AlbumDuration>
             </Artist>;
@@ -303,10 +277,7 @@ const ListArtistAlbums = ({artistId, cardWidth}) => {
             `} onClick={e => {
                 pushLocation(`/${artistId}/${it.name}`)
             }}>
-                {it?.coverPath && <AlbumCover artistId={artistId} album={it}/>}
-                {!it?.coverPath && <MaterialIcon className={css`
-                  font-size: 50px;
-                `} icon={'album'}/>}
+                <AlbumCover artistId={artistId} album={it}/>
                 <AlbumTitle>{it.name}</AlbumTitle>
                 <AlbumArtist>{artist.name}</AlbumArtist>
                 <AlbumDuration>{formatDuration(getAlbumDuration(it))}</AlbumDuration>
@@ -374,27 +345,10 @@ const ListSongs = ({artistId, albumName}) => {
     return <FlexRow className={css`
       margin: ${isMobile ? 0 : '20px'};
       margin-bottom: 0;
-      flex-flow: row ${isMobile ? 'wrap' : 'nowrap'};
-      align-items: flex-start;`}>
-
-        {album.coverPath && <Image
-            className={classNames(css`
-                      border-radius: 4px;
-                      max-width: 100%;
-                      max-height: 150px;`,
-                isMobile && css`
-                      width: 100%;
-                      max-height: 300px;
-                      max-width: 300px;
-                      margin-left: auto;
-                      margin-right: auto;
-                      margin-bottom: 20px;
-                `)}
-            src={NetworkService.baseurl + '/artists/' + artist.id + '/' + album.id + '/' + album.coverPath} alt={album.name}
-        />}
-        {!album.coverPath && <MaterialIcon className={css`
-          font-size: 50px;
-        `} icon={'album'}/>}
+      flex-flow: ${isMobile ? 'column' : 'row'};
+      align-items: ${isMobile ? 'center' : 'flex-start'};`
+    }>
+        <AlbumCover artistId={artist.id} album={album} className={classNames(isMobile && 'mobile')}/>
 
         {!isMobile && <span className={css`width: 25px;`}/>}
 
@@ -403,6 +357,8 @@ const ListSongs = ({artistId, albumName}) => {
           flex-grow: 1;
           padding-left: 20px;
           padding-right: 20px;
+          width: 100%;
+          box-sizing: border-box;
         `}>
             <FlexRow className={css`justify-content: space-between;`}>
                 <FlexColumn>
