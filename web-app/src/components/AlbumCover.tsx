@@ -73,7 +73,7 @@ const AlbumCover = ({artistId, album, className, forceShow}: AlbumCoverProps) =>
 
     return <div ref={ref} className={classNames('AlbumCover', AlbumCoverStyles, className)}>
         {blobUrl && <img src={blobUrl} alt={album?.name}/>}
-        {!blobUrl && <MaterialIcon icon={'album'}/>}
+        {!src && <MaterialIcon icon={'album'}/>}
     </div>
 }
 
