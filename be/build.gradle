@@ -1,40 +1,14 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 import java.nio.file.Files
 import java.text.SimpleDateFormat
-import org.gradle.internal.os.OperatingSystem;
 
 buildscript {
-    ext.postgresqlVersion = "42.4.2"
-    def arch = ""
-    if (System.getProperty("os.arch") == "aarch64") {
-        arch = "-arm64"
-    }
-
-    def os = ""
-    if (OperatingSystem.current().isLinux()) {
-        os = "linux"
-    } else if (OperatingSystem.current().isMacOsX()) {
-        os = "macos"
-    } else if (OperatingSystem.current().isWindows()) {
-        os = "windows"
-    }
-//    println "System.getProperty(\"os.arch\"): ${System.getProperty("os.arch")}"
-//    project.ext.lwjgl = "3.3.1"
-    project.ext.lwjgl = "3.3.2-SNAPSHOT"
-    project.ext.lwjglNative = "natives-${os}${arch}"
-
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-    }
+    ext.postgresqlVersion = "42.6.0"
 }
 
 plugins {
-    id "org.springframework.boot" version "2.6.6"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "org.jetbrains.kotlin.jvm" version "1.7.10"
-    id "org.jetbrains.kotlin.plugin.spring" version "1.7.10"
+    id "org.jetbrains.kotlin.jvm" version "1.9.0"
 }
 
 apply plugin: 'application'
@@ -43,7 +17,13 @@ apply plugin: 'tools-gradle-build'
 group = "com.example"
 version = "0.0.1-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
 
+tasks.withType(KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
 
 mainClassName = 'com.example.be.App'
 
@@ -55,15 +35,6 @@ repositories {
 }
 
 dependencies {
-    implementation('org.springframework.boot:spring-boot-starter-web') { exclude module: "spring-boot-starter-tomcat" }
-    implementation 'org.springframework.boot:spring-boot-starter-undertow'
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
-    implementation 'org.jetbrains.kotlin:kotlin-reflect'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
-
-//    implementation "org.flywaydb:flyway-core:8.5.6"
-//    implementation 'com.zaxxer:HikariCP:5.0.1'
     implementation 'com.wizzardo.tools:tools:0.24-SNAPSHOT'
 //    implementation files('../../tools/build/libs/tools-all-0.24-SNAPSHOT.jar')
     implementation('com.wizzardo:http:0.5-SNAPSHOT') {
@@ -84,12 +55,6 @@ dependencies {
 //    implementation files('../../cloud-storage-webdav/storages/s3/build/libs/s3-1.0-SNAPSHOT.jar')
 //    implementation files('../../cloud-storage-webdav/storages/webdav/build/libs/webdav-1.0-SNAPSHOT.jar')
 
-    implementation "org.lwjgl:lwjgl:${lwjgl}"
-    implementation "org.lwjgl:lwjgl:${lwjgl}:${lwjglNative}"
-    implementation "org.lwjgl:lwjgl-stb:${lwjgl}"
-    implementation "org.lwjgl:lwjgl-stb:${lwjgl}:${lwjglNative}"
-
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 
