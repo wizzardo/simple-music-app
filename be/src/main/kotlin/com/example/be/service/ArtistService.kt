@@ -5,10 +5,8 @@ import com.example.be.db.generated.Tables
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.Album
 import com.wizzardo.tools.sql.query.QueryBuilder
-import org.springframework.stereotype.Service
 import java.util.Date
 
-@Service
 class ArtistService(
     private val songsStorageService: SongsStorageService,
     private val randomIdService: RandomIdService,

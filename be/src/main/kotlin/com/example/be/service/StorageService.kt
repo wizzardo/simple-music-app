@@ -6,22 +6,14 @@ import com.wizzardo.cloud.storage.S3Storage
 import com.wizzardo.cloud.storage.Storage
 import com.wizzardo.cloud.storage.fs.LocalStorage
 import com.wizzardo.cloud.storage.webdav.WebdavStorage
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 import java.io.File
 import java.io.InputStream
 
-@Component
 class StorageService(
-    @Value("\${storage.path:}")
     private val path: String,
-    @Value("\${storage.subpath:/}")
     private val subpath: String?,
-    @Value("\${storage.type}")
     private val type: String,
-    @Value("\${storage.username:}")
     private val username: String?,
-    @Value("\${storage.password:}")
     private val password: String?,
 ) : Storage<FileInfo> {
 

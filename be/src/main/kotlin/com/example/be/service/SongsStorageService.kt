@@ -6,8 +6,6 @@ import com.example.be.db.model.Artist.Album.Song
 import com.wizzardo.tools.misc.Unchecked
 import com.wizzardo.tools.security.AES
 import com.wizzardo.tools.security.Base64
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -18,11 +16,8 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.IvParameterSpec
 
-@Component
 class SongsStorageService(
-    @Value("\${storage.useIdAsName:false}")
     private val useIdAsName: Boolean,
-    @Value("\${storage.encryption:false}")
     val encryption: Boolean,
     val storageService: StorageService,
 ) {

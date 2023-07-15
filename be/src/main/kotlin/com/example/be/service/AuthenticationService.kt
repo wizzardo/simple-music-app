@@ -2,16 +2,11 @@ package com.example.be.service
 
 import com.wizzardo.tools.security.Base64
 import com.wizzardo.tools.security.SHA256
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.util.*
 
-@Component
 class AuthenticationService(
-    @Value("\${auth.username:}")
     private val username: String?,
-    @Value("\${auth.password:}")
     private val password: String?,
 ) {
     private val secret: String

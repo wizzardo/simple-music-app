@@ -6,14 +6,10 @@ import com.example.be.db.model.Artist.Album
 import com.example.be.service.FFmpegService.MetaData
 import com.wizzardo.tools.security.MD5
 import com.wizzardo.tools.sql.query.QueryBuilder
-import org.springframework.http.ResponseEntity
-import org.springframework.stereotype.Service
-import org.springframework.web.multipart.MultipartFile
 import java.io.File
 import java.sql.SQLException
 import java.util.regex.Pattern
 
-@Service
 class UploadService(
     private val songsStorageService: SongsStorageService,
     private val ffmpegService: FFmpegService,
@@ -35,7 +31,7 @@ class UploadService(
         fileName: String?,
         artistId: Long?,
         albumId: String?
-    ): ResponseEntity<Artist> {
+    ): Artist {
         val ext = fileName?.substringAfterLast('.') ?: "bin"
         val tempFile = File.createTempFile("upload", ".$ext")
 //        val tempFile = File("upload.$ext")
@@ -127,7 +123,7 @@ class UploadService(
                 }
             }
 
-            return ResponseEntity.ok(artist)
+            return artist!!
         } finally {
             tempFile.delete()
         }
@@ -184,14 +180,6 @@ class UploadService(
         val (h, m, s) = hMs.split(':').map { it.toInt() }
 
         return (ms.toInt() + ((h * 60 + m) * 60 + s) * 1000)
-    }
-
-    fun uploadCoverArt(artist: Artist, album: Album, file: MultipartFile): Artist {
-        val imageBytes = file.bytes
-        album.coverPath = "cover.jpg"
-        album.coverHash = MD5.create().update(imageBytes).toString()
-        songsStorageService.putCover(artist, album, imageBytes)
-        return artistService.update(artist.id, artist, artist)
     }
 
     fun uploadCoverArt(artist: Artist, album: Album, file: File): Artist {

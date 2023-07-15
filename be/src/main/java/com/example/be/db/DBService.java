@@ -2,12 +2,10 @@ package com.example.be.db;
 
 import com.wizzardo.tools.sql.DBTools;
 import com.wizzardo.tools.sql.SimpleConnectionPool;
-import org.springframework.stereotype.Service;
 
 import javax.sql.ConnectionPoolDataSource;
 import java.util.concurrent.ForkJoinPool;
 
-@Service
 public class DBService extends DBTools {
 
     public DBService(ConnectionPoolDataSource dataSource) {

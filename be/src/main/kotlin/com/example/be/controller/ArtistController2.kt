@@ -45,7 +45,7 @@ class ArtistController2 : Controller() {
         return ffmpegService.convert(artist, album, song, it.format, it.bitrate)
     }
 
-    private fun startConversion(it: ConversionTask): ArtistController.ConversionStreamResult {
+    private fun startConversion(it: ConversionTask): FFmpegService.ConversionStreamResult {
         val artist: Artist = artistService.getArtist(it.artistId)
             ?: throw IllegalArgumentException("Artist not found. id: ${it.artistId}")
         val album: Artist.Album = artist.albums.find { album -> album.name == it.albumIdOrName || album.id == it.albumIdOrName || album.path == it.albumIdOrName }
@@ -103,7 +103,7 @@ class ArtistController2 : Controller() {
 
     data class CreateArtistRequest(var name: String = "")
 
-    fun createArtist(data: ArtistController.CreateArtistRequest): Renderer {
+    fun createArtist(data: CreateArtistRequest): Renderer {
         val permissions = permissions() ?: return render(Status._403)
         val artist = artistService.getOrCreateArtist(data.name, data.name.replace("/", " - "))
         return renderJson(artist)

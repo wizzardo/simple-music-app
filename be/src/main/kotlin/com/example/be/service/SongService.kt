@@ -5,14 +5,12 @@ import com.example.be.db.model.Artist.Album
 import com.example.be.misc.TempFileInputStream
 import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.misc.Stopwatch
-import org.springframework.stereotype.Service
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-@Service
 class SongService(
     private val artistService: ArtistService,
     private val songsStorageService: SongsStorageService,

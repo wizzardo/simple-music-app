@@ -1,13 +1,12 @@
 package com.example.be.service
 
-import com.example.be.controller.ArtistController
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.*
 import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.io.IOTools
+import com.wizzardo.tools.misc.DateIso8601
 import com.wizzardo.tools.misc.Stopwatch
-import org.springframework.stereotype.Service
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -23,7 +22,6 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import kotlin.collections.HashMap
 
-@Service
 class FFmpegService(
     private val songService: SongService,
 ) {
@@ -101,16 +99,22 @@ class FFmpegService(
         return doConvert(artist, album, song, format, Math.min(bitrate, b))
     }
 
-    fun convertAsStream(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): ArtistController.ConversionStreamResult {
+
+    data class ConversionStreamResult(
+        val data: InputStream,
+        val format: AudioFormat,
+    )
+
+    fun convertAsStream(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): ConversionStreamResult {
         val audio = song.streams.find { it.startsWith("Audio:") }!!
         if (format == AudioFormat.FLAC || format == AudioFormat.WAV)
             if (song.format == format)
-                return ArtistController.ConversionStreamResult(
+                return ConversionStreamResult(
                     songService.copySongStream(artist, album, song),
                     format
                 )
             else if (song.format != AudioFormat.FLAC && song.format != AudioFormat.WAV)
-                return ArtistController.ConversionStreamResult(
+                return ConversionStreamResult(
                     songService.copySongStream(artist, album, song),
                     song.format
                 )
@@ -124,7 +128,7 @@ class FFmpegService(
 
         if (song.format == format) {
             if (b <= bitrate)
-                return ArtistController.ConversionStreamResult(
+                return ConversionStreamResult(
                     songService.copySongStream(artist, album, song),
                     format
                 )
@@ -141,7 +145,7 @@ class FFmpegService(
                 toBitrate = (toBitrate * 0.8).toInt()
             }
         }
-        return ArtistController.ConversionStreamResult(doConvertAsStream(songStream, song.format, format, toBitrate), format)
+        return ConversionStreamResult(doConvertAsStream(songStream, song.format, format, toBitrate), format)
     }
 
     fun doConvert(artist: Artist, album: Album, song: Album.Song, format: AudioFormat, bitrate: Int): File {
