@@ -371,9 +371,8 @@ class FFmpegService(
 //            println(message)
 
 
-//            val image = ImageTools.read(tempFile)
-//            return ImageTools.saveJPGtoBytes(image, 90)
-            return convertToJpg(tempFile)
+            val image = ImageTools.read(tempFile)
+            return ImageTools.saveJPGtoBytes(image, 90)
         } finally {
             tempFile.delete()
         }

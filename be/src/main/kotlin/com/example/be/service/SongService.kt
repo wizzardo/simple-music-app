@@ -3,13 +3,12 @@ package com.example.be.service
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.Album
 import com.example.be.misc.TempFileInputStream
+import com.wizzardo.tools.image.ImageTools
 import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.misc.Stopwatch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
-import java.util.*
-import java.util.concurrent.TimeUnit
 
 class SongService(
     private val artistService: ArtistService,
@@ -71,38 +70,13 @@ class SongService(
         println(stopwatch)
 
         try {
-            val command =
-                arrayOf(
-                    "mogrify", "-resize", "512x512", "-quality", "90", "-filter", "lanczos", tempFile.canonicalPath
-                )
-            println("executing command: ${Arrays.toString(command)}")
-            stopwatch = Stopwatch("mogrify image")
-            val process = Runtime.getRuntime().exec(command)
-            val exited = process.waitFor(30, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroy()
-            }
-
-            val output = String(process.inputStream.readAllBytes())
-            if (output.isNotEmpty()) {
-                println("output:")
-                println(output)
-            }
-            val error = String(process.errorStream.readAllBytes())
-            if (error.isNotEmpty()) {
-                println("error:")
-                println(error)
-            }
+            stopwatch = Stopwatch("read image")
+            var image = ImageTools.read(tempFile)
             println(stopwatch)
+            image = ImageTools.resizeToFit(image, 512, 512)
 
-//            stopwatch = Stopwatch("read image")
-//            var image = ImageTools.read(tempFile)
-//            println(stopwatch)
-//            var image = StbImageLoader.load(tempFile)
-//            image = ImageTools.resizeToFit(image, 512, 512)
-//
-//            stopwatch = Stopwatch("save image")
-//            ImageTools.saveJPG(image, tempFile, 90)
+            stopwatch = Stopwatch("save image")
+            ImageTools.saveJPG(image, tempFile, 90)
             println(stopwatch)
 
             delete = false

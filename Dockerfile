@@ -49,8 +49,6 @@ RUN wget "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${TARGETARCH}
     && rm -rf ffmpeg-*-static \
     && rm ffmpeg-release-*-static.tar.xz
 
-RUN apk --no-cache add imagemagick
-
 COPY --from=builder /tmp/app/be/build/libs/be-all-0.0.1-SNAPSHOT.jar app.jar
 
 ENV JAVA_OPTS "-Xmx256m \
