@@ -110,15 +110,15 @@ self.addEventListener('fetch', event => {
         event.respondWith(cachedOrFetch(request));
     } else if (url.startsWith(self.location.origin)) {
         if (request.headers.get('Accept').indexOf('text/html') !== -1) {
-            fetchOrCachedOnTimeout(request, 30, clientId).then(response => {
+            event.respondWith(fetchOrCachedOnTimeout(request, 30, clientId).then(response => {
                 if (response.status === 404) {
-                    event.respondWith(fetchOrCachedOnTimeout(
+                    return fetchOrCachedOnTimeout(
                         new Request(url.substring(0, url.indexOf('/', 10) + 1), {...request}), 300, clientId
-                    ))
+                    )
                 } else {
-                    event.respondWith(response)
+                    return response
                 }
-            })
+            }))
         } else
             event.respondWith(fetchOrCachedOnTimeout(request, 30, clientId));
     }
