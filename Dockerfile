@@ -24,17 +24,17 @@ WORKDIR /tmp/app
 COPY gradlew .
 COPY gradle gradle
 COPY settings.gradle .
-RUN ./gradlew
+RUN ./gradlew --no-daemon
 
 COPY build.gradle .
 COPY be/build.gradle be/build.gradle
-RUN ./gradlew -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" :be:resolveDependencies
+RUN ./gradlew --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" :be:resolveDependencies
 
 COPY be be
 COPY --from=web-builder /tmp/app/build be/src/main/resources/public
 
-RUN ./gradlew :be:generateTables
-RUN ./gradlew -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" fatJar
+RUN ./gradlew --no-daemon :be:generateTables
+RUN ./gradlew --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" fatJar
 
 FROM bellsoft/liberica-openjdk-alpine:11
 
@@ -45,9 +45,9 @@ ARG TARGETARCH
 RUN wget "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${TARGETARCH}-static.tar.xz" \
     && tar xf "ffmpeg-release-${TARGETARCH}-static.tar.xz" \
     && mv ffmpeg-*-static/ffmpeg . \
-    && mv ffmpeg-*-static/ffprobe . \
     && rm -rf ffmpeg-*-static \
     && rm ffmpeg-release-*-static.tar.xz
+#    && mv ffmpeg-*-static/ffprobe . \
 
 COPY --from=builder /tmp/app/be/build/libs/be-all-0.0.1-SNAPSHOT.jar app.jar
 
