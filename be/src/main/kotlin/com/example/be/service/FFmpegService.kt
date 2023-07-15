@@ -29,7 +29,7 @@ class FFmpegService(
     val bitratePattern = Pattern.compile("([0-9]+) *kb/s")
 
     fun getMetaData(f: File): MetaData {
-        val process = Runtime.getRuntime().exec(arrayOf("./ffprobe", "-hide_banner", "-i", f.canonicalPath))
+        val process = Runtime.getRuntime().exec(arrayOf("./ffmpeg", "-hide_banner", "-i", f.canonicalPath))
         process.waitFor()
 //        println("output:")
 //        println(String(process.inputStream.readAllBytes()))
@@ -373,36 +373,6 @@ class FFmpegService(
 
             val image = ImageTools.read(tempFile)
             return ImageTools.saveJPGtoBytes(image, 90)
-        } finally {
-            tempFile.delete()
-        }
-    }
-
-    fun convertToJpg(file: File): ByteArray {
-        val tempFile = File.createTempFile("image", ".jpg")
-        try {
-            val command =
-                arrayOf(
-                    "convert", "-quality", "90", file.canonicalPath, tempFile.canonicalPath
-                )
-            println("executing command: ${Arrays.toString(command)}")
-            val process = Runtime.getRuntime().exec(command)
-            val exited = process.waitFor(30, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroy()
-            }
-
-            val output = String(process.inputStream.readAllBytes())
-            if (output.isNotEmpty()) {
-                println("output:")
-                println(output)
-            }
-            val error = String(process.errorStream.readAllBytes())
-            if (error.isNotEmpty()) {
-                println("error:")
-                println(error)
-            }
-            return FileTools.bytes(tempFile)
         } finally {
             tempFile.delete()
         }
