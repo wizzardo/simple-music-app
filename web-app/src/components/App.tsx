@@ -9,7 +9,6 @@ import {useStore} from "react-ui-basics/store/Store";
 import * as ArtistsStore from "../stores/ArtistsStore";
 import * as PlayerStore from "../stores/PlayerStore";
 import * as AuthenticationStore from "../stores/AuthenticationStore";
-import * as BlobStore from "../stores/BlobStore";
 import {css} from "goober";
 import NetworkService from "../services/NetworkService";
 import CacheStats from "./CacheStats";
@@ -17,9 +16,8 @@ import Settings from "./Settings";
 import MoreMenu from "./MoreMenu";
 import DownloadQueue from "./DownloadQueue";
 import Button from "react-ui-basics/Button";
-import {pushLocation} from "react-ui-basics/router/HistoryTools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
-import {useWindowSize} from "../utils/Hooks";
+import {useImageBlobUrl, useWindowSize} from "../utils/Hooks";
 import {useLocalCache} from "../services/LocalCacheService";
 import LoginForm from "./LoginForm";
 
@@ -31,8 +29,10 @@ export default () => {
     const artist = artistsStore.map[queuedSong?.artistId];
     const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
 
-    const coverBackgroundUrl = useStore(BlobStore.store, t => t[`${NetworkService.baseurl}/artists/${artist?.id}/${album?.id}/${album?.coverPath}`])
-    const coverBackground = playing && album && css`
+    const backgroundSrc = playing && album && `${NetworkService.baseurl}/artists/${artist.id}/${album.id}/${album.coverPath}`;
+    const coverBackgroundUrl = useImageBlobUrl(backgroundSrc)
+    console.log('coverBackground', album, coverBackgroundUrl, backgroundSrc)
+    const coverBackground = coverBackgroundUrl && css`
       background-image: url('${coverBackgroundUrl}');
     `;
 

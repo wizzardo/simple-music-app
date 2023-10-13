@@ -1,11 +1,9 @@
-import {useBlobUrl, useIsShownOnScreen, useWebCache} from "../utils/Hooks";
-import React, {useEffect, useRef, useState} from "react";
+import {useImageBlobUrl, useIsShownOnScreen} from "../utils/Hooks";
+import React, {useRef} from "react";
 import {css} from "goober";
 import {classNames} from "react-ui-basics/Tools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
 import NetworkService, {AlbumDto} from "../services/NetworkService";
-import * as BlobStore from "../stores/BlobStore";
-import {useStore} from "react-ui-basics/store/Store";
 
 const AlbumCoverStyles = css`
   &.AlbumCover {
@@ -13,6 +11,12 @@ const AlbumCoverStyles = css`
     display: flex;
     justify-content: center;
     align-items: center;
+    opacity: 0;
+    transition: opacity ease 200ms;
+    
+    &.shown {
+      opacity: 1;
+    }
 
     img {
       max-width: 100%;
@@ -58,21 +62,13 @@ type AlbumCoverProps = {
     forceShow?: boolean
 };
 const AlbumCover = ({artistId, album, className, forceShow}: AlbumCoverProps) => {
-    const src = album?.coverPath ? NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath : null;
     const ref = useRef<HTMLDivElement>();
-    const blobUrl = useStore(BlobStore.store, state => state[src])
     const isShown = useIsShownOnScreen(ref.current) || !!forceShow
-    const buffer = useWebCache(isShown && !blobUrl && src ? src : null);
+    const src = album?.coverPath ? NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath : null;
+    const imageBlobUrl = useImageBlobUrl(src, isShown);
 
-    useEffect(() => {
-        if (!buffer || blobUrl) return
-
-        const blob = new Blob([buffer]);
-        BlobStore.add(src, URL.createObjectURL(blob))
-    }, [buffer, blobUrl])
-
-    return <div ref={ref} className={classNames('AlbumCover', AlbumCoverStyles, className)}>
-        {blobUrl && <img src={blobUrl} alt={album?.name}/>}
+    return <div ref={ref} className={classNames('AlbumCover', AlbumCoverStyles, imageBlobUrl && 'shown', className)}>
+        {imageBlobUrl && <img src={imageBlobUrl} alt={album?.name}/>}
         {!src && <MaterialIcon icon={'album'}/>}
     </div>
 }

@@ -1,6 +1,8 @@
 import {useEffect, useMemo, useState} from "react";
 import {WINDOW} from "react-ui-basics/Tools";
 import {useLocalCache, WebCacheEntry} from "../services/LocalCacheService";
+import * as BlobStore from "../stores/BlobStore";
+import {useStore} from "react-ui-basics/store/Store";
 
 export const useWindowSize = () => {
     const [windowsSize, setWindowSize] = useState({width: WINDOW.innerWidth, height: WINDOW.innerHeight})
@@ -79,8 +81,10 @@ export const useWebCache = (url): ArrayBuffer => {
 export const useIsShownOnScreen = (element: Element) => {
     const [isShown, setIsShown] = useState(false);
 
-    const observer = useMemo(() => new IntersectionObserver(([entry]) =>
-        setIsShown(entry.isIntersecting),
+    const observer = useMemo(() => new IntersectionObserver(
+        ([entry]) => {
+            setIsShown(entry.isIntersecting);
+        },
     ), []);
 
     useEffect(() => {
@@ -111,4 +115,16 @@ export const useBlobUrl = (buffer: ArrayBuffer) => {
     }, [buffer])
 
     return url
+}
+
+export const useImageBlobUrl = (src: string, doLoad: boolean = true): string => {
+    const blobUrl = useStore(BlobStore.store)[src]
+    const buffer = useWebCache(!blobUrl && doLoad ? src : null);
+    useEffect(() => {
+        if (!buffer || blobUrl || !src) return
+
+        const blob = new Blob([buffer]);
+        BlobStore.add(src, URL.createObjectURL(blob))
+    }, [buffer, blobUrl, src])
+    return blobUrl
 }
