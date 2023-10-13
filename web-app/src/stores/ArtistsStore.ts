@@ -1,6 +1,7 @@
 import Store from "react-ui-basics/store/Store";
 import {GenericState} from "./Stores";
 import {ArtistDto} from "../services/NetworkService";
+import {isDifferent} from "react-ui-basics/Tools"
 
 export type SongsState = GenericState<ArtistDto>
 
@@ -23,7 +24,8 @@ export const set = (item: ArtistDto) => {
     store.set(state => {
         if (!state.ids.includes(item.id))
             state.ids.push(item.id)
-        state.map[item.id] = item
+        if (isDifferent(item, state.map[item.id]))
+            state.map[item.id] = item
         return state
     });
 }
