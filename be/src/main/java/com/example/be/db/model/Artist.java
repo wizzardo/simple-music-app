@@ -28,7 +28,6 @@ public class Artist {
             public String id = "";
             public int track = 0;
             public String title = "";
-            public String comment = "";
             public int duration = 0;
             public List<String> streams = Collections.emptyList();
             public String path = "";
