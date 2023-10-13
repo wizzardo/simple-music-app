@@ -5,9 +5,7 @@ import com.example.be.controller.AuthController
 import com.example.be.db.DBService
 import com.example.be.filter.AuthFilter
 import com.example.be.service.*
-import com.example.be.service.SongsStorageService
 import com.wizzardo.http.FileTreeHandler
-import com.wizzardo.http.MultipartHandler
 import com.wizzardo.http.RestHandler
 import com.wizzardo.http.framework.ControllerHandler
 import com.wizzardo.http.framework.Environment
@@ -20,7 +18,6 @@ import com.wizzardo.http.request.Header
 import com.wizzardo.http.request.Request
 import com.wizzardo.http.response.Status
 import com.wizzardo.tools.evaluation.Config
-import java.lang.IllegalStateException
 import javax.sql.ConnectionPoolDataSource
 
 class App(args: Array<out String>?) : WebApplication(args) {

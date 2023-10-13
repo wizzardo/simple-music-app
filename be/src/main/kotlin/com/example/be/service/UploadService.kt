@@ -164,7 +164,6 @@ class UploadService(
         id = randomIdService.generateId()
         metaData.track?.let { this.track = it }
         metaData.title?.let { this.title = it }
-        metaData.comment?.let { this.comment = it }
         metaData.duration?.let { this.duration = getMillis(it) }
         metaData.streams.let { this.streams = it }
         format = FFmpegService.AudioFormat.valueOf(relativePath.substringAfterLast('.').uppercase())

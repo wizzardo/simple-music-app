@@ -70,7 +70,6 @@ class FFmpegService(
             artist = metadata["artist"],
             title = metadata["title"],
             track = track,
-            comment = metadata["comment"],
             duration = metadata["duration"],
             streams = metadata.keys.filter { it.startsWith("stream") }.map { metadata[it]!! },
         )
@@ -155,6 +154,7 @@ class FFmpegService(
 
     fun doConvert(songStream: InputStream, fromFormat: AudioFormat, toFormat: AudioFormat, bitrate: Int): File {
         val tempOutFile = File.createTempFile("to_", "." + toFormat.extension)
+        println("started conversion at ${DateIso8601.format(Date())}")
         val stopwatch = Stopwatch("converting to " + toFormat)
         val command =
             arrayOf(
@@ -182,9 +182,10 @@ class FFmpegService(
         val latch = CountDownLatch(2)
         threadPool.execute({
             try {
-                FileOutputStream(tempOutFile).use { outputStream ->
+                val copied = FileOutputStream(tempOutFile).use { outputStream ->
                     IOTools.copy(process.inputStream, outputStream)
                 }
+                println("process.inputStream copied: ${copied}, ${DateIso8601.format(Date())}")
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -216,16 +217,19 @@ class FFmpegService(
         })
 
         try {
-            IOTools.copy(songStream, process.outputStream)
+            val copied = IOTools.copy(songStream, process.outputStream)
             process.outputStream.close()
+            println("close outputStream: ${copied}, ${DateIso8601.format(Date())}")
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
 
-        val exited = process.waitFor(1, TimeUnit.SECONDS)
+        val exited = process.waitFor(1, TimeUnit.MINUTES)
+        println("process.waitFor ${DateIso8601.format(Date())}")
         println(stopwatch)
         if (!exited) {
+            println("process.destroy()")
             process.destroy()
         }
 
@@ -384,7 +388,6 @@ class FFmpegService(
         var artist: String? = null,
         var title: String? = null,
         var track: Int? = null,
-        var comment: String? = null,
         var duration: String? = null,
         var streams: List<String> = emptyList(),
     )
