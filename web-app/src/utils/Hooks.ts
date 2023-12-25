@@ -47,8 +47,9 @@ export const useWebCache = (url): ArrayBuffer => {
 
             try {
                 const response = await fetch(url, {
+                    credentials: 'include',
                     headers: {
-                        'If-None-Match': cacheEntry?.etag || ''
+                        'If-None-Match': cacheEntry?.etag || '',
                     }
                 });
 
