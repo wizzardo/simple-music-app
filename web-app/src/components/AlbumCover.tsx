@@ -1,5 +1,5 @@
 import {useImageBlobUrl, useIsShownOnScreen} from "../utils/Hooks";
-import React, {useRef} from "react";
+import React, {useState} from "react";
 import {css} from "goober";
 import {classNames} from "react-ui-basics/Tools";
 import MaterialIcon from "react-ui-basics/MaterialIcon";
@@ -62,12 +62,12 @@ type AlbumCoverProps = {
     forceShow?: boolean
 };
 const AlbumCover = ({artistId, album, className, forceShow}: AlbumCoverProps) => {
-    const ref = useRef<HTMLDivElement>();
-    const isShown = useIsShownOnScreen(ref.current) || !!forceShow
+    const [ref, setRef] = useState<HTMLDivElement>(null)
+    const isShown = useIsShownOnScreen(ref) || !!forceShow
     const src = album?.coverPath ? NetworkService.baseurl + '/artists/' + artistId + '/' + album.id + '/' + album.coverPath : null;
     const imageBlobUrl = useImageBlobUrl(src, isShown);
 
-    return <div ref={ref} className={classNames('AlbumCover', AlbumCoverStyles, imageBlobUrl && 'shown', className)}>
+    return <div ref={setRef} className={classNames('AlbumCover', AlbumCoverStyles, imageBlobUrl && 'shown', className)}>
         {imageBlobUrl && <img src={imageBlobUrl} alt={album?.name}/>}
         {!src && <MaterialIcon icon={'album'}/>}
     </div>
