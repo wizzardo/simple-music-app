@@ -8,7 +8,7 @@ import {formatDuration, getAlbumDuration} from "../utils/Helpers";
 import {pushLocation, replaceLocation} from "react-ui-basics/router/HistoryTools";
 import Route from "react-ui-basics/router/Route";
 import {FlexColumn, FlexRow} from "./SharedComponents";
-import {classNames, Comparators} from "react-ui-basics/Tools";
+import {addEventListener, classNames, Comparators, removeEventListener, WINDOW} from "react-ui-basics/Tools";
 import {SORT_ASC} from "react-ui-basics/Table";
 import * as PlayerStore from "../stores/PlayerStore";
 import Button from "react-ui-basics/Button";
@@ -84,7 +84,19 @@ const Library = ({artistId, album}) => {
         albumCardWidth = `${(windowSize.width) / 2 - 10}px`
     }
 
-    return <Scrollable className={css`
+    const scrollRef = useRef<Scrollable>();
+
+    useEffect(() => {
+        const listener = (event) => {
+            scrollRef.current?.setScroll(event.state?.scroll || 0)
+        };
+        addEventListener(WINDOW, "popstate", listener)
+        return () => {
+            removeEventListener(WINDOW, "popstate", listener)
+        }
+    }, []);
+
+    return <Scrollable ref={scrollRef} className={css`
       max-width: 100%;
       padding-right: 0;
       max-height: ${queue.length ? windowSize.height - 151 : windowSize.height}px !important;
@@ -92,6 +104,7 @@ const Library = ({artistId, album}) => {
       > .viewport {
         text-align: center;
         padding-top: 19px;
+        scroll-behavior: auto;
       }
     `}>
         <FlexRow className={css`
@@ -103,7 +116,10 @@ const Library = ({artistId, album}) => {
         </FlexRow>
 
         <Route path={"/"}>
-            <ListArtists cardWidth={albumCardWidth}/>
+            <ListArtists cardWidth={albumCardWidth} pushLocation={path => {
+                WINDOW.history.replaceState({scroll: scrollRef.current.getScroll()}, null, null)
+                pushLocation(path)
+            }}/>
         </Route>
         <Route path={"/albums"}>
             <ListAlbums cardWidth={albumCardWidth}/>
@@ -156,7 +172,7 @@ const Artist = styled("div")`
   }
 `;
 
-const ListArtists = ({cardWidth}) => {
+const ListArtists = ({cardWidth, pushLocation}) => {
     const artistsStore = useStore(ArtistsStore.store)
 
     useEffect(() => {
@@ -181,9 +197,9 @@ const ListArtists = ({cardWidth}) => {
             return <Artist className={css`
               width: ${cardWidth};
             `} onClick={e => {
-                if (artist.albums.length > 1)
+                if (artist.albums.length > 1) {
                     pushLocation(`/${id}/`)
-                else
+                } else
                     pushLocation(`/${id}/${artist.albums[0].name}`)
             }}>
                 {/*{artist.albums.length===1 && }*/}
