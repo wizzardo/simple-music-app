@@ -3,15 +3,10 @@ package com.example.be.service
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.*
 import com.wizzardo.tools.image.ImageTools
-import com.wizzardo.tools.io.FileTools
 import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.misc.DateIso8601
 import com.wizzardo.tools.misc.Stopwatch
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.InputStreamReader
+import java.io.*
 import java.lang.IllegalStateException
 import java.lang.StringBuilder
 import java.util.*
@@ -312,7 +307,46 @@ class FFmpegService(
                 throw IllegalStateException("Error while decoding")
             }
         })
-        return process.inputStream
+        return ProcessInputStream(process)
+    }
+
+    class ProcessInputStream(val process: Process) : InputStream() {
+        val inputStream: InputStream
+
+        init {
+            inputStream = process.inputStream
+        }
+
+        override fun close() {
+            super.close()
+            if (process.isAlive) {
+                process.destroy()
+            }
+        }
+
+        override fun read() = inputStream.read()
+
+        override fun read(b: ByteArray, off: Int, len: Int) = inputStream.read(b, off, len)
+
+        override fun read(b: ByteArray) = inputStream.read(b)
+
+        override fun readAllBytes() = inputStream.readAllBytes()
+
+        override fun readNBytes(len: Int) = inputStream.readNBytes(len)
+
+        override fun readNBytes(b: ByteArray?, off: Int, len: Int) = inputStream.readNBytes(b, off, len)
+
+        override fun skip(n: Long) = inputStream.skip(n)
+
+        override fun available() = inputStream.available()
+
+        override fun mark(readlimit: Int) = inputStream.mark(readlimit)
+
+        override fun reset() = inputStream.reset()
+
+        override fun markSupported() = inputStream.markSupported()
+
+        override fun transferTo(out: OutputStream?) = inputStream.transferTo(out)
     }
 
     fun extractCoverArt(audio: File, to: File) {
