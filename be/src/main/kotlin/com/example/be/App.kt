@@ -124,6 +124,10 @@ class App(args: Array<out String>?) : WebApplication(args) {
                 )
             )
             DependencyFactory.get().register(
+                StreamHandlingService::class.java,
+                SingletonDependency(StreamHandlingService())
+            )
+            DependencyFactory.get().register(
                 DBService::class.java,
                 SingletonDependency(DBService(app.createDatasource(app.config)))
             )

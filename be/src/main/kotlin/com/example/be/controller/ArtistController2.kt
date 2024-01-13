@@ -23,6 +23,7 @@ class ArtistController2 : Controller() {
     private lateinit var songService: SongService
     private lateinit var ffmpegService: FFmpegService
     private lateinit var uploadService: UploadService
+    private lateinit var streamHandlingService: StreamHandlingService
 
     companion object {
         val MAX_AGE_1_YEAR = "max-age=31556926"
@@ -311,7 +312,8 @@ class ArtistController2 : Controller() {
         request.connection().flush()
         response.async()
 
-        request.connection().send(createChunkedReadable(inputStream))
+        streamHandlingService.sendInputStream(request.connection(), inputStream)
+//        request.connection().send(createChunkedReadable(inputStream))
 
         return render(Status._200)
     }
