@@ -1,4 +1,4 @@
-const fs = require("fs-extra")
+import fs from "fs-extra";
 
 if (!fs.existsSync('buildts'))
     fs.mkdirSync('buildts');

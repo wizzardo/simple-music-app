@@ -44,7 +44,7 @@ copyManifest();
 copyStatics();
 
 export default {
-    input: 'buildts/src/index.js',
+    input: 'buildts/index.js',
     output: [
         {
             dir: `build/static/${version}`,
