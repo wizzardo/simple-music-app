@@ -128,7 +128,11 @@ export default {
                 ["babel-plugin-jsx-pragmatic", {module: "react-ui-basics/ReactCreateElement", import: "ReactCreateElement"}],
             ],
         }),
-        (isProd && terser()),
+        (isProd && terser({
+            format: {
+                comments: false,
+            }
+        })),
         replace({
             'process.env.NODE_ENV': JSON.stringify(env),
         }),
