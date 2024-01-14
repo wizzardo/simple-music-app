@@ -27,7 +27,8 @@ if (!fs.existsSync('build'))
 const prepareHtml = () => {
     let htmlTemplate = fs.readFileSync('src/template.html', {encoding: 'utf8', flag: 'r'});
     htmlTemplate = htmlTemplate.replace('<% preact.headEnd %>', `<link  href="/static/${version}/bundle.css" rel="stylesheet">`)
-    htmlTemplate = htmlTemplate.replace('<% preact.bodyEnd %>', `<script defer src="/static/${version}/index.js"></script>`)
+    // htmlTemplate = htmlTemplate.replace('<% preact.bodyEnd %>', `<script defer src="/static/${version}/index.js"></script>`)
+    htmlTemplate = htmlTemplate.replace('<% preact.bodyEnd %>', `<script type="module" src="/static/${version}/index.js"></script>`)
 
     fs.writeFileSync('build/index.html', htmlTemplate, {encoding: "utf8",})
 }
@@ -49,14 +50,15 @@ export default {
         {
             dir: `build/static/${version}`,
             // format: 'system',
-            format: 'iife',
+            // format: 'iife',
+            format: 'es',
             sourcemap: isProd,
             assetFileNames: "[name][extname]",
             preserveModules: false,
+            inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
         },
     ],
     treeshake: isProd,
-    inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
     // experimentalOptimizeChunks: true,
     // chunkGroupingSize: 10240,
     perf: false,

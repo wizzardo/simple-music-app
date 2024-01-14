@@ -19,10 +19,10 @@ export default {
             format: 'es',
             assetFileNames: "[name][extname]",
             preserveModules: true,
+            inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
         },
     ],
     treeshake: true,
-    inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
     perf: false,
     plugins: [
         styles({

@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import {classNames} from "react-ui-basics/Tools";
 import Route from "react-ui-basics/router/Route";
-import LibraryEditor from "./LibraryEditor";
+import LibraryEditor from "./lazy/LibraryEditor";
 import Dialog from "./Dialog";
 import Library from "./Library";
 import Player from "./Player";

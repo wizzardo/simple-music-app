@@ -38,7 +38,12 @@ const LinkActiveStyles = css`
   color: #038acc;
 `
 
-const LibraryEditor = ({artistId, album}) => {
+export interface LibraryEditorProps {
+    artistId?: number
+    album?: string
+}
+
+const LibraryEditor = ({artistId, album}: LibraryEditorProps) => {
     const artistsStore = useStore(ArtistsStore.store)
 
     const artists = artistsStore.ids.map(id => artistsStore.map[id])
