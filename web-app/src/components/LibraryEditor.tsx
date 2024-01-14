@@ -88,10 +88,10 @@ const LibraryEditor = ({artistId, album}: LibraryEditorProps) => {
                 <ListAlbumsArtists artists={artists}/>
             </Route>
             <Route path={"/edit/artists/:artistId"}>
-                <ListAlbums artist={artist}/>
+                {artist && <ListAlbums artist={artist}/>}
             </Route>
             <Route path={"/edit/artists/:artistId/:albumName"}>
-                <ListSongs album={albumDto} artist={artist}/>
+                {artist && <ListSongs album={albumDto} artist={artist}/>}
             </Route>
         </>
 
