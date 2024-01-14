@@ -18,9 +18,9 @@ export default {
             dir: `buildts`,
             format: 'es',
             assetFileNames: "[name][extname]",
+            preserveModules: true,
         },
     ],
-    preserveModules: true,
     treeshake: true,
     inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
     perf: false,

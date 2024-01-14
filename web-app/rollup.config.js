@@ -44,7 +44,7 @@ copyManifest();
 copyStatics();
 
 export default {
-    input: 'buildts/index.js',
+    input: 'buildts/src/index.js',
     output: [
         {
             dir: `build/static/${version}`,
@@ -52,9 +52,9 @@ export default {
             format: 'iife',
             sourcemap: isProd,
             assetFileNames: "[name][extname]",
+            preserveModules: false,
         },
     ],
-    preserveModules: false,
     treeshake: isProd,
     inlineDynamicImports: isDev || false, // true = disabling code splitting to chunks
     // experimentalOptimizeChunks: true,
