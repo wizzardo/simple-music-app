@@ -23,7 +23,9 @@ import LoginForm from "./LoginForm";
 
 export default () => {
     const artistsStore = useStore(ArtistsStore.store)
-    const {playing, position, queue} = useStore(PlayerStore.store)
+    const queue = useStore(PlayerStore.store, ({queue}) => queue)
+    const position = useStore(PlayerStore.store, ({position}) => position)
+    const playing = useStore(PlayerStore.store, ({playing}) => playing)
 
     const queuedSong = queue[position]
     const artist = artistsStore.map[queuedSong?.artistId];

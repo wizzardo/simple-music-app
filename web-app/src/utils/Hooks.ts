@@ -119,7 +119,7 @@ export const useBlobUrl = (buffer: ArrayBuffer) => {
 }
 
 export const useImageBlobUrl = (src: string, doLoad: boolean = true): string => {
-    const blobUrl = useStore(BlobStore.store)[src]
+    const blobUrl = useStore(BlobStore.store, it => it[src])
     const buffer = useWebCache(!blobUrl && doLoad ? src : null);
     useEffect(() => {
         if (!buffer || blobUrl || !src) return

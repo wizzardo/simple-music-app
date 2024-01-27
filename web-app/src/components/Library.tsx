@@ -12,7 +12,7 @@ import {addEventListener, classNames, Comparators, removeEventListener, WINDOW} 
 import {SORT_ASC} from "react-ui-basics/Table";
 import * as PlayerStore from "../stores/PlayerStore";
 import Button from "react-ui-basics/Button";
-import Scrollable, {SCROLLBAR_MODE_VISIBLE} from "react-ui-basics/Scrollable";
+import Scrollable from "react-ui-basics/Scrollable";
 import {Song as SongDTO, useLocalCache} from "../services/LocalCacheService";
 import * as SettingsStore from "../stores/SettingsStore";
 import * as DownloadQueueStore from "../stores/DownloadQueueStore";
@@ -427,7 +427,7 @@ const ListSongs = ({artistId, albumName}) => {
 
             <span className={css`height: 25px;`} ref={refSeparatorSongs}/>
 
-            <Scrollable scrollBarMode={SCROLLBAR_MODE_VISIBLE} className={css`
+            <Scrollable className={css`
               max-width: 100%;
               max-height: ${isMobile ? 9999 + 'px' : (refSeparatorSongs.current ? (window.innerHeight - 151 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px')};
             `}>

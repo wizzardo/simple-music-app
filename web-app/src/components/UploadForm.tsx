@@ -168,6 +168,7 @@ export const UploadForm = ({artistId, albumId}: { artistId?: number, albumId?: s
                     cancel: null,
                     finished: false,
                     uploading: false,
+                    error: false,
                 }))]);
             }}/>}
 

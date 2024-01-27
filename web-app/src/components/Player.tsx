@@ -32,7 +32,9 @@ const Player = ({}) => {
     const artist = artistsStore.map[queuedSong?.artistId];
     const album = artist?.albums?.find(it => it.id === queuedSong?.albumId);
     const song = album?.songs?.find(it => it.id === queuedSong?.songId);
-    const duration = song?.duration / 1000
+    let duration = song?.duration / 1000
+    if (Number.isNaN(duration))
+        duration = 0;
 
     const [audio] = useState<HTMLAudioElement>(() => new Audio())
     const [silence] = useState<HTMLAudioElement>(() => new Audio())

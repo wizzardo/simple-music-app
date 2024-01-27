@@ -157,10 +157,14 @@ interface DBStore {
 
 const store = new Store<DBStore>({ready: false});
 (async () => {
-    await db.open()
-    store.set(state => {
-        state.ready = true
-    })
+    try {
+        await db.open()
+        store.set(state => {
+            state.ready = true
+        })
+    } catch (e) {
+        console.error(e)
+    }
 })()
 
 export const useLocalCache = () => {
