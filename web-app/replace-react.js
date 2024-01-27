@@ -37,7 +37,7 @@ const removeSpacesInCSS = data => {
     matches.reverse().forEach(i => {
         let end = data.indexOf('`', i)
         let css = data.substring(i, end)
-        css = css.replaceAll(new RegExp(/\n\s+/g), '')
+        css = css.replaceAll(new RegExp(/\n\s*/g), '')
         css = css.replaceAll(new RegExp(/: /g), ':')
         css = css.replaceAll(new RegExp(/ \{/g), '{')
         data = data.substring(0, i) + css + data.substring(end)
