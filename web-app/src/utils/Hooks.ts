@@ -35,6 +35,7 @@ export const useWebCache = (url): ArrayBuffer => {
     const [value, setValue] = useState<WebCacheEntry>();
 
     useEffect(() => {
+        let canceled = false;
         (async () => {
             if (!localCache)
                 return;
@@ -42,6 +43,8 @@ export const useWebCache = (url): ArrayBuffer => {
                 return;
 
             let cacheEntry = await localCache.getWebCacheEntry(url);
+            if (canceled)
+                return
             if (cacheEntry)
                 setValue(cacheEntry)
 
@@ -64,6 +67,8 @@ export const useWebCache = (url): ArrayBuffer => {
                     }
                     if (etag)
                         localCache.addWebCacheEntry(cacheEntry)
+                    if (canceled)
+                        return
                     setValue(cacheEntry)
                 } else if (response.status == 304) {
                     return
@@ -74,6 +79,9 @@ export const useWebCache = (url): ArrayBuffer => {
                 console.error(`Failed to load ${url}`, e)
             }
         })()
+        return () => {
+            canceled = true
+        }
     }, [url, localCache])
 
     return value?.data
@@ -119,13 +127,14 @@ export const useBlobUrl = (buffer: ArrayBuffer) => {
 }
 
 export const useImageBlobUrl = (src: string, doLoad: boolean = true): string => {
-    const blobUrl = useStore(BlobStore.store, it => it[src], [src])
+    const blobUrl = useStore(BlobStore.store, it => it[src])
     const buffer = useWebCache(!blobUrl && doLoad ? src : null);
     useEffect(() => {
-        if (!buffer || blobUrl || !src) return
+        if (!buffer || !src) return
 
         const blob = new Blob([buffer]);
-        BlobStore.add(src, URL.createObjectURL(blob))
-    }, [buffer, blobUrl, src])
+        let objectURL = URL.createObjectURL(blob);
+        BlobStore.add(src, objectURL)
+    }, [buffer, src])
     return blobUrl
 }
