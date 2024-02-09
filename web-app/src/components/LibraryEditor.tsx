@@ -430,7 +430,7 @@ const EditableTitle = ({value, onSave}: { value: string, onSave: (newValues: str
                                onFocus={() => {
                                    setShouldFocus(false)
                                }}
-                               onBlur={e => {
+                               onBlur={() => {
                                    if (inputValue === value) {
                                        setEditing(false)
                                        setShouldFocus(true)

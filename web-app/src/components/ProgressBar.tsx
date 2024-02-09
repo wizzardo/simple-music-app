@@ -5,7 +5,7 @@ import {css} from "goober";
 type OnProgressClick = (progress: number) => void
 
 const ProgressBar = ({progress = 0, onClick, draggable}: { draggable: boolean, progress: number, onClick?: OnProgressClick }) => {
-    const el = createRef()
+    const el = createRef<HTMLDivElement>()
 
     const [isDragging, setIsDragging] = useState(false)
 

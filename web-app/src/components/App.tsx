@@ -46,7 +46,7 @@ export default () => {
     }, [localCacheDB])
 
     useEffect(() => {
-        navigator.serviceWorker.onmessage = (event) => {
+        navigator.serviceWorker && (navigator.serviceWorker.onmessage = (event) => {
             console.log(event)
             const data = event.data;
             if (data.type === 'FETCH') {
@@ -57,7 +57,7 @@ export default () => {
                     ArtistsStore.set(data.data)
                 }
             }
-        };
+        });
     }, [])
 
     const authenticationState = useStore(AuthenticationStore.store);

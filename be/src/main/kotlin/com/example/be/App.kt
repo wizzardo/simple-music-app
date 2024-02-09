@@ -48,6 +48,7 @@ class App(args: Array<out String>?) : WebApplication(args) {
 
                 val resourceTools = DependencyFactory.get(ResourceTools::class.java)
                 val indexHtml = resourceTools.getResource("/public/index.html").readAllBytes()
+                val manifestJson = resourceTools.getResource("/public/manifest.json").readAllBytes()
 
                 val fileTreeHandler = DependencyFactory.get(FileTreeHandler::class.java)
                 val defaultForbiddenHandler = fileTreeHandler.forbiddenHandler()
@@ -64,6 +65,9 @@ class App(args: Array<out String>?) : WebApplication(args) {
                 it.filtersMapping.addBefore("/*", DependencyFactory.get(AuthFilter::class.java))
 
                 it.urlMapping
+                    .append("/manifest.json", RestHandler("manifest").get({ request, response ->
+                        response.body(manifestJson).appendHeader(Header.KEY_CONTENT_TYPE, Header.VALUE_APPLICATION_JSON).status(Status._200)
+                    }))
                     .append("/login", AuthController::class.java, "login", Request.Method.POST)
                     .append("/login/required", AuthController::class.java, "isLoginRequired", Request.Method.GET)
                     .append("/artists", ArtistController2::class.java, "getArtists", Request.Method.GET)

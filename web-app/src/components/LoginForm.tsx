@@ -27,7 +27,7 @@ const LoginForm = ({}) => {
         <FlexRow>
             <img className={css`
               max-width: 300px;
-            `} src={'/static/icon-512x512.png'}/>
+            `} src={'/static/icon-512x512-t.png'}/>
         </FlexRow>
 
         <FlexColumn className={css`
