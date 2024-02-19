@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useState, useReducer, useRef} from "react";
 import {WINDOW} from "react-ui-basics/Tools";
 import {useLocalCache, WebCacheEntry} from "../services/LocalCacheService";
 import * as BlobStore from "../stores/BlobStore";
@@ -32,9 +32,11 @@ export const useAsync = <R>(f: () => Promise<R>): R => {
 
 export const useWebCache = (url): ArrayBuffer => {
     const localCache = useLocalCache();
-    const [value, setValue] = useState<WebCacheEntry>();
+    const [_, forceUpdate] = useReducer(x => x + 1, 0);
+    const valueRef = useRef<WebCacheEntry>(null)
 
     useEffect(() => {
+        valueRef.current = null
         let canceled = false;
         (async () => {
             if (!localCache)
@@ -45,8 +47,10 @@ export const useWebCache = (url): ArrayBuffer => {
             let cacheEntry = await localCache.getWebCacheEntry(url);
             if (canceled)
                 return
-            if (cacheEntry)
-                setValue(cacheEntry)
+            if (cacheEntry) {
+                valueRef.current = cacheEntry
+                forceUpdate()
+            }
 
             try {
                 const response = await fetch(url, {
@@ -69,7 +73,9 @@ export const useWebCache = (url): ArrayBuffer => {
                         localCache.addWebCacheEntry(cacheEntry)
                     if (canceled)
                         return
-                    setValue(cacheEntry)
+
+                    valueRef.current = cacheEntry
+                    forceUpdate()
                 } else if (response.status == 304) {
                     return
                 } else {
@@ -84,7 +90,7 @@ export const useWebCache = (url): ArrayBuffer => {
         }
     }, [url, localCache])
 
-    return value?.data
+    return valueRef.current?.data
 }
 
 export const useIsShownOnScreen = (element: Element) => {
