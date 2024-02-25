@@ -3,20 +3,28 @@ package com.example.be.controller
 import com.example.be.db.model.Artist
 import com.example.be.misc.TempFileInputStream
 import com.example.be.service.*
+import com.wizzardo.epoll.readable.ReadableByteArray
 import com.wizzardo.http.ChunkedReadableData
 import com.wizzardo.http.framework.Controller
 import com.wizzardo.http.framework.RequestContext
+import com.wizzardo.http.framework.template.ReadableDataRenderer
 import com.wizzardo.http.framework.template.Renderer
 import com.wizzardo.http.request.Header
 import com.wizzardo.http.request.MultiPartFileEntry
+import com.wizzardo.http.response.JsonResponseHelper
 import com.wizzardo.http.response.Status
 import com.wizzardo.tools.cache.Cache
 import com.wizzardo.tools.io.IOTools
+import com.wizzardo.tools.json.JsonTools
 import com.wizzardo.tools.misc.Stopwatch
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import java.util.Collections
+import java.io.OutputStream
+import java.util.*
+import java.util.zip.GZIPOutputStream
+
 
 class ArtistController2 : Controller() {
     private lateinit var artistService: ArtistService
@@ -67,9 +75,36 @@ class ArtistController2 : Controller() {
         val bitrate: Int,
     )
 
-    fun getArtists(): Renderer {
+    fun getArtists(): Renderer? {
         val permissions = permissions() ?: return render(Status._403)
-        return renderJson(artistService.getArtists())
+        return renderJsonGzipped(artistService.getArtists())
+    }
+
+    fun renderJsonGzipped(o: Any?): Renderer? {
+        if (o == null) {
+            response.setStatus(Status._404)
+            return null
+        }
+        response.appendHeader(Header.KV_CONTENT_TYPE_APPLICATION_JSON)
+
+        val acceptEncoding = request.header(Header.KEY_ACCEPT_ENCODING)
+        if (!(acceptEncoding?.contains("gzip") ?: false)) {
+            return ReadableDataRenderer(JsonResponseHelper.renderJson(o))
+        }
+
+        class GZIPOutputStreamWithCompression(out: OutputStream, compression: Int) : GZIPOutputStream(out, 32 * 1024) {
+            init {
+                def.setLevel(compression)
+            }
+        }
+
+        response.appendHeader(Header.KV_CONTENT_ENCODING_GZIP)
+
+        val baos = ByteArrayOutputStream(32 * 1024)
+        val gos = GZIPOutputStreamWithCompression(baos, 1)
+        gos.use { gz -> JsonTools.serialize(o, gz) }
+        val bytes = baos.toByteArray()
+        return ReadableDataRenderer(ReadableByteArray(bytes))
     }
 
     fun getArtist(id: Long): Renderer {
