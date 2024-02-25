@@ -5,6 +5,8 @@ import com.example.be.db.generated.Tables
 import com.example.be.db.model.Artist
 import com.example.be.db.model.Artist.Album
 import com.wizzardo.tools.sql.query.QueryBuilder
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.Date
 
 class ArtistService(
@@ -55,7 +57,7 @@ class ArtistService(
 //        println("albums: $albums")
         return dbService.withBuilder { db ->
             db.update(Tables.ARTIST)
-                .set(Tables.ARTIST.UPDATED.eq(Date()))
+                .set(Tables.ARTIST.UPDATED.eq(Timestamp.from(Instant.now())))
                 .set(Tables.ARTIST.ALBUMS.eq(artist.albums))
                 .where(Tables.ARTIST.ID.eq(artist.id).and(Tables.ARTIST.UPDATED.eq(artist.updated)))
                 .executeUpdate()
@@ -65,7 +67,7 @@ class ArtistService(
     fun update(id: Long, data: Artist): Int = dbService.withBuilder { db -> update(db, id, data) }
     fun update(db: QueryBuilder.WrapConnectionStep, id: Long, data: Artist): Int {
         return db.update(Tables.ARTIST)
-            .set(Tables.ARTIST.UPDATED.eq(Date()))
+            .set(Tables.ARTIST.UPDATED.eq(Timestamp.from(Instant.now())))
             .set(Tables.ARTIST.ALBUMS.eq(data.albums))
             .set(Tables.ARTIST.NAME.eq(data.name))
             .set(Tables.ARTIST.PATH.eq(data.path))

@@ -16,6 +16,7 @@ import com.wizzardo.http.response.Status
 import com.wizzardo.tools.cache.Cache
 import com.wizzardo.tools.io.IOTools
 import com.wizzardo.tools.json.JsonTools
+import com.wizzardo.tools.misc.DateIso8601
 import com.wizzardo.tools.misc.Stopwatch
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -77,7 +78,19 @@ class ArtistController2 : Controller() {
 
     fun getArtists(): Renderer? {
         val permissions = permissions() ?: return render(Status._403)
-        return renderJsonGzipped(artistService.getArtists())
+        val artists = artistService.getArtists()
+
+        val maxByDate = artists.maxByOrNull({ it.updated })
+        if (maxByDate != null) {
+            val etag = DateIso8601.format(maxByDate.updated)
+            val ifNoneMatch = request.header(Header.KEY_IF_NONE_MATCH)
+            if (ifNoneMatch != null && ifNoneMatch == etag)
+                return render(Status._304)
+
+            response.appendHeader(Header.KEY_ETAG, etag)
+        }
+
+        return renderJsonGzipped(artists)
     }
 
     fun renderJsonGzipped(o: Any?): Renderer? {
