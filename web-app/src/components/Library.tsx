@@ -139,10 +139,6 @@ const ListAlbums = ({cardWidth}) => {
     const artistsStore = useStore(ArtistsStore.store)
     const albums = artistsStore.ids.map(id => artistsStore.map[id].albums.map(it => ({...it, artistId: id}))).flat()
 
-    useEffect(() => {
-        NetworkService.getArtists().then(ArtistsStore.setAll)
-    }, [])
-
     albums.sort(Comparators.of(it => it.name, Comparators.SORT_ASC, albums))
 
     return <>
@@ -174,10 +170,6 @@ const Artist = styled("div")`
 
 const ListArtists = ({cardWidth, pushLocation}) => {
     const artistsStore = useStore(ArtistsStore.store)
-
-    useEffect(() => {
-        NetworkService.getArtists().then(ArtistsStore.setAll)
-    }, [])
 
     let ids = artistsStore.ids.filter(id => artistsStore.map[id].albums.length > 0);
     ids.sort(Comparators.of(id => artistsStore.map[id].name, Comparators.SORT_ASC, ids))
