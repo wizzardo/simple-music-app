@@ -73,7 +73,7 @@ const load = (url,
                         decode = () => {
                             if (detached) return
                             if (bufferPosition < arrays.length) {
-                                if (!sourceBuffer.buffered.length || sourceBuffer.buffered.end(0) - audio.currentTime < 300) {
+                                if (!sourceBuffer.buffered.length || sourceBuffer.buffered.end(0) - audio.currentTime < 10) {
                                     let buffer = arrays[bufferPosition++];
                                     totalAdded += buffer.length
                                     sourceBuffer.appendBuffer(buffer);
