@@ -5,84 +5,30 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build-css": "sass --no-source-map src:src/",
-    "watch-css": "npm run build-css && sass --no-source-map --watch src:src",
-    "clean": "rm -rf build/* && rm -rf buildts/*",
-    "build": "preact build --no-prerender --no-sw",
-    "build-rollup": "NODE_ENV=production rollup -c rollup.config.js",
-    "build-ts": "NODE_ENV=production rollup -c rollup.config-process-ts.js",
-    "serve": "sirv build --port 3000 --cors --single",
+    "clean": "rm -rf build/*",
     "prebuild": "sh generateInfo.sh",
-    "start-js": "NODE_OPTIONS=--openssl-legacy-provider preact watch -p 3000 --no-sw",
-    "start": "npm-run-all -p watch-css start-js",
-    "gzip-build": "gzip -k --best build/static/*/*.js && gzip -k --best build/static/*/*.css",
-    "dist": "npm-run-all clean prebuild build-css build-ts replace-react build-rollup gzip-build",
-    "dev": "preact watch",
-    "copy-build": "rm -rf ../be/src/main/resources/public/* && cp -r build/* ../be/src/main/resources/public/",
-    "replace-react": "node replace-react.js",
-    "lint": "eslint src"
-  },
-  "eslintConfig": {
-    "extends": "preact",
-    "ignorePatterns": [
-      "build/"
-    ]
+    "gzip-build": "gzip -k --best build/assets/*.js && gzip -k --best build/assets/*.css",
+    "start": "vite",
+    "build": "vite build",
+    "copy-statics": "cp src/sw.js build/ && cp -r src/static build/",
+    "dist": "npm-run-all clean prebuild build gzip-build copy-statics",
+    "copy-build": "rm -rf ../be/src/main/resources/public/* && cp -r build/* ../be/src/main/resources/public/"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.7",
-    "@babel/plugin-external-helpers": "^7.23.3",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-decorators": "^7.23.7",
-    "@babel/plugin-proposal-do-expressions": "^7.23.3",
-    "@babel/plugin-proposal-export-default-from": "^7.23.3",
-    "@babel/plugin-proposal-function-bind": "^7.23.3",
-    "@babel/plugin-proposal-logical-assignment-operators": "^7.20.7",
-    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
-    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
-    "@babel/plugin-proposal-pipeline-operator": "^7.23.3",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.23.7",
-    "@babel/preset-env": "^7.23.8",
-    "@babel/preset-react": "^7.23.3",
-    "@rollup/plugin-alias": "^5.1.0",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "@types/react": "^18.2.47",
-    "@types/react-dom": "^18.2.18",
-    "babel-plugin-jsx-pragmatic": "1.0.2",
-    "babel-plugin-module-resolver": "5.0.0",
-    "babel-plugin-transform-react-remove-prop-types": "0.4.24",
-    "enzyme": "^3.11.0",
-    "enzyme-adapter-preact-pure": "^4.1.0",
-    "eslint": "^8.56.0",
-    "eslint-config-preact": "^1.3.0",
-    "fs-extra": "^11.2.0",
-    "npm-run-all": "4.1.5",
-    "preact-cli": "^3.5.0",
-    "rollup": "4.9.5",
-    "rollup-plugin-babel": "4.4.0",
-    "rollup-plugin-commonjs": "10.1.0",
-    "rollup-plugin-json": "4.0.0",
-    "rollup-plugin-node-resolve": "5.2.0",
-    "rollup-plugin-replace": "2.2.0",
-    "rollup-plugin-styles": "^4.0.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "sass": "^1.69.7",
-    "sirv-cli": "2.0.2",
-    "typescript": "^5.3.3"
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "npm-run-all2": "6.2.3",
+    "magic-string": "^0.30.11",
+    "sass-embedded": "^1.79.4",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.1"
   },
   "dependencies": {
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.13",
     "goober": "^2.1.14",
-    "preact": "^10.19.3",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-ui-basics": "0.0.220"
-  },
-  "jest": {
-    "preset": "jest-preset-preact",
-    "setupFiles": [
-      "<rootDir>/tests/__mocks__/browserMocks.js",
-      "<rootDir>/tests/__mocks__/setupTests.js"
-    ]
+    "preact": "^10.24.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-ui-basics": "0.0.226"
   }
 }

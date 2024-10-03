@@ -5,7 +5,7 @@ import MaterialIcon from 'react-ui-basics/MaterialIcon'
 import SpinningProgress from 'react-ui-basics/SpinningProgress'
 import {classNames, debounce, orNoop} from "react-ui-basics/Tools";
 import NetworkService from "../services/NetworkService";
-import './UploadForm.css'
+import './UploadForm.scss'
 import {css} from "goober";
 import {useStore} from "react-ui-basics/store/Store";
 import * as ArtistsStore from "../stores/ArtistsStore";

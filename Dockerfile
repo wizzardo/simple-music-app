@@ -1,22 +1,19 @@
-FROM node:20-alpine as web-builder
+FROM node:20-alpine AS web-builder
 
 WORKDIR /tmp/app
 
 COPY web-app/package.json .
-RUN npm i --legacy-peer-deps
+RUN npm i
 
 COPY web-app/tsconfig.json .
-COPY web-app/preact.config.js .
-COPY web-app/replace-react.js .
-COPY web-app/rollup.config.js .
-COPY web-app/rollup.config-process-ts.js .
 COPY web-app/generateInfo.sh .
+COPY web-app/vite.config.ts .
 COPY web-app/src src
 
 RUN npm run dist
 
 
-FROM bellsoft/liberica-openjdk-alpine:11  as builder
+FROM bellsoft/liberica-openjdk-alpine:11  AS builder
 
 RUN apk add --no-cache bash
 
@@ -36,7 +33,7 @@ COPY --from=web-builder /tmp/app/build be/src/main/resources/public
 RUN ./gradlew --no-daemon :be:generateTables
 RUN ./gradlew --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -Xms2g" fatJar
 
-FROM bellsoft/liberica-openjdk-alpine:11 as ffmpeg-downloader
+FROM bellsoft/liberica-openjdk-alpine:11 AS ffmpeg-downloader
 
 ARG TARGETARCH
 
@@ -58,7 +55,7 @@ WORKDIR /app
 COPY --from=ffmpeg-downloader /tmp/ffmpeg ffmpeg
 COPY --from=builder /tmp/app/be/build/libs/be-all-0.0.1-SNAPSHOT.jar app.jar
 
-ENV JAVA_OPTS "-Xmx256m \
+ENV JAVA_OPTS="-Xmx256m \
  -Xss256k \
  -XX:+UseShenandoahGC \
  -XX:+UnlockExperimentalVMOptions \
