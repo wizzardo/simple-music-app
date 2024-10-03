@@ -4,11 +4,11 @@ import java.nio.file.Files
 import java.text.SimpleDateFormat
 
 buildscript {
-    ext.postgresqlVersion = "42.6.0"
+    ext.postgresqlVersion = "42.7.4"
 }
 
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.9.0"
+    id "org.jetbrains.kotlin.jvm" version "2.0.20"
 }
 
 apply plugin: 'application'
@@ -107,15 +107,3 @@ task([description: 'listing all public files'], 'listPublicFiles', {
     }
 })
 tasks.processResources.dependsOn listPublicFiles
-
-
-task resolveDependencies {
-    setDescription "Resolves all projects dependencies from the repository."
-    doLast {
-        rootProject.allprojects { project ->
-            Set<Configuration> configurations = project.buildscript.configurations + project.configurations
-            configurations.findAll { c -> c.canBeResolved }
-                    .forEach { c -> c.resolve() }
-        }
-    }
-}
