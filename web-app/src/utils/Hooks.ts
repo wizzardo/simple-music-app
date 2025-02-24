@@ -70,7 +70,7 @@ export const useWebCache = (url): ArrayBuffer => {
                         data
                     }
                     if (etag)
-                        localCache.addWebCacheEntry(cacheEntry)
+                        await localCache.addWebCacheEntry(cacheEntry)
                     if (canceled)
                         return
 

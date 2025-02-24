@@ -52,7 +52,11 @@ async function fetchOrCachedOnTimeout(request, timeout, clientId) {
         fetchAndCache(request).then(response => {
             if (!resolved) {
                 console.log('resolve fetched', request.url)
-                resolve(response)
+                if (response.status < 300) {
+                    resolve(response)
+                } else {
+                    resolve(cachedResponse)
+                }
                 resolved = true
             } else if (!!clientId) {
                 const contentType = response.headers.get('Content-Type');

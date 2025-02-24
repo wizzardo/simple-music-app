@@ -100,8 +100,13 @@ export class SongLocalCacheDB extends DB {
 
     async addWebCacheEntry(entry: WebCacheEntry) {
         const tr = this.trRW(WEB_CACHE_STORE_NAME);
+        const key =  await tr.objectStore<WebCacheEntry, number>(WEB_CACHE_STORE_NAME)
+            .index("url")
+            .getKey(entry.url)
+            .asPromise();
+
         return await tr.objectStore<WebCacheEntry, number>(WEB_CACHE_STORE_NAME)
-            .add(entry)
+            .put(entry, key)
             .asPromise();
     }
 
