@@ -34,3 +34,7 @@ auth {
     username = ''
     password = ''
 }
+
+cache {
+    path = '/tmp/sma/cache'
+}

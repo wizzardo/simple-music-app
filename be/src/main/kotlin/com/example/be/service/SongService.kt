@@ -13,6 +13,7 @@ import java.io.InputStream
 class SongService(
     private val artistService: ArtistService,
     private val songsStorageService: SongsStorageService,
+    private val cachePath: String,
 ) {
 
     fun getSongData(artist: Artist, album: Album, song: Album.Song): File {
@@ -59,8 +60,12 @@ class SongService(
     }
 
     fun getAlbumCoverData(artist: Artist, album: Album): TempFileInputStream {
+        val file = File(cachePath, "cover-${album.id}-${album.coverHash}.jpg")
+        if (file.exists()) {
+            return TempFileInputStream(file, false)
+        }
+
         val tempFile = File.createTempFile("cover", ".jpg")
-        var delete = true
         var stopwatch = Stopwatch("get and decrypt image")
         songsStorageService.getCoverAsStream(artist, album).use { inputStream ->
             FileOutputStream(tempFile).use { outputStream ->
@@ -76,15 +81,13 @@ class SongService(
             image = ImageTools.resizeToFit(image, 512, 512)
 
             stopwatch = Stopwatch("save image")
-            ImageTools.saveJPG(image, tempFile, 90)
+            ImageTools.saveJPG(image, file, 90)
             println(stopwatch)
 
-            delete = false
-            return TempFileInputStream(tempFile)
+            return TempFileInputStream(file, false)
 //            return FileTools.bytes(tempFile)
         } finally {
-            if (delete)
-                tempFile.delete()
+            tempFile.delete()
         }
 
 //        return storageService.getData("${artistPath}/${albumPath}/cover.jpg")

@@ -18,6 +18,7 @@ import com.wizzardo.http.request.Header
 import com.wizzardo.http.request.Request
 import com.wizzardo.http.response.Status
 import com.wizzardo.tools.evaluation.Config
+import java.io.File
 import javax.sql.ConnectionPoolDataSource
 
 class App(args: Array<out String>?) : WebApplication(args) {
@@ -171,12 +172,16 @@ class App(args: Array<out String>?) : WebApplication(args) {
                     )
                 )
             )
+
+            File(app.config.config("cache").get("path").toString()).mkdirs()
+
             DependencyFactory.get().register(
                 SongService::class.java,
                 SingletonDependency(
                     SongService(
                         DependencyFactory.get(ArtistService::class.java),
                         DependencyFactory.get(SongsStorageService::class.java),
+                        app.config.config("cache").get("path").toString()
                     )
                 )
             )
