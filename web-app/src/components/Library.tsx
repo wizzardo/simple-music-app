@@ -349,6 +349,7 @@ const ListSongs = ({artistId, albumName}) => {
 
 
     let isMobile = window.innerWidth <= 800;
+    const ListContainer = !isMobile ? Scrollable : FlexColumn
 
     return <FlexRow className={css`
       margin: ${isMobile ? 0 : '20px'};
@@ -419,12 +420,12 @@ const ListSongs = ({artistId, albumName}) => {
 
             <span className={css`height: 25px;`} ref={refSeparatorSongs}/>
 
-            <Scrollable className={css`
+            <ListContainer className={css`
               max-width: 100%;
               max-height: ${isMobile ? 9999 + 'px' : (refSeparatorSongs.current ? (window.innerHeight - 151 - refSeparatorSongs.current.getBoundingClientRect().bottom) + 'px' : '600px')};
             `}>
                 {songs.map(it => <Song key={it.id} artist={artist} album={album} song={it}/>)}
-            </Scrollable>
+            </ListContainer>
         </FlexColumn>
 
 
